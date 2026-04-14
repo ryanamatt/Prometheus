@@ -20,6 +20,9 @@ class TokenType(Enum):
     ASSIGN = auto()     # =
     PLUS = auto()       # +
 
+    # Comparison Operators
+    EQUAL = auto()      # ==
+    NOTEQUAL = auto()   # !=
     GREATER = auto()    # >
     LESSER = auto()     # <
     GREATEREQ = auto()  # >=

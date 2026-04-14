@@ -91,15 +91,27 @@ class Parser:
         
         # Check for all comparison operators
         while (token := self.current_token()):
+
+            if token.token_type == TokenType.EQUAL:
+                op = self.eat(TokenType.EQUAL)
+                node = BinOpNode(left=node, op=op, right=self.parse_additive())
+
+            elif token.token_type == TokenType.NOTEQUAL:
+                op = self.eat(TokenType.NOTEQUAL)
+                node = BinOpNode(left=node, op=op, right=self.parse_additive())
+
             if token.token_type == TokenType.GREATER:
                 op = self.eat(TokenType.GREATER)
                 node = BinOpNode(left=node, op=op, right=self.parse_additive())
+
             elif token.token_type == TokenType.GREATEREQ:
                 op = self.eat(TokenType.GREATEREQ)
                 node = BinOpNode(left=node, op=op, right=self.parse_additive())
+
             elif token.token_type == TokenType.LESSER:
                 op = self.eat(TokenType.LESSER)
                 node = BinOpNode(left=node, op=op, right=self.parse_additive())
+
             elif token.token_type == TokenType.LESSEREQ:
                 op = self.eat(TokenType.LESSEREQ)
                 node = BinOpNode(left=node, op=op, right=self.parse_additive())

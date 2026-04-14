@@ -90,6 +90,19 @@ class Lexer:
                             self.tokens.append(Token(TokenType.LESSER, "<"))
                             self.current_pos += 1
 
+                    case '=':
+                        if self.current_pos + 1 < len(self.source) and self.source[self.current_pos + 1] == '=':
+                            self.tokens.append(Token(TokenType.EQUAL, "=="))
+                            self.current_pos += 2
+                        else:
+                            self.tokens.append(Token(TokenType.ASSIGN, "="))
+                            self.current_pos += 1
+
+                    case '!':
+                        if self.current_pos + 1 < len(self.source) and self.source[self.current_pos + 1] == '=':
+                            self.tokens.append(Token(TokenType.NOTEQUAL, "!="))
+                            self.current_pos += 2
+
                     case _:
                         self.tokens.append(Token(symbol_map[char], char))
                         self.current_pos += 1

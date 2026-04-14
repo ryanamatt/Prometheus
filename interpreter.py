@@ -34,6 +34,10 @@ class Interpreter:
             if node.op.token_type == TokenType.PLUS:
                 return left_val + right_val
             
+            elif node.op.token_type == TokenType.EQUAL:
+                return left_val == right_val
+            elif node.op.token_type == TokenType.NOTEQUAL:
+                return left_val != right_val
             elif node.op.token_type == TokenType.GREATER:
                 return left_val > right_val
             elif node.op.token_type == TokenType.GREATEREQ:
