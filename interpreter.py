@@ -72,11 +72,21 @@ class Interpreter:
         
         elif isinstance(node, IfNode):
             condition_met = self.visit(node.condition)
-            
+            # 1. Check main IF
             if condition_met:
                 for stmt in node.then_branch:
                     self.visit(stmt)
-            elif node.else_branch:
+                return
+
+            # 2. Check ELIFs
+            for condition, branch in node.elif_branches:
+                if self.visit(condition):
+                    for stmt in branch:
+                        self.visit(stmt)
+                    return # Exit once a branch is met
+
+            # 3. Check ELSE
+            if node.else_branch:
                 for stmt in node.else_branch:
                     self.visit(stmt)
         

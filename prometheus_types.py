@@ -22,6 +22,7 @@ class TokenType(Enum):
     
     # Keywords
     IF = auto()
+    ELIF = auto()
     ELSE = auto()
     PRINT = auto()
     

@@ -75,10 +75,13 @@ class PrintNode(ASTNode):
     
 class IfNode(ASTNode):
     """Represents an 'if-else' control flow structure."""
-    def __init__(self, condition: ASTNode, then_branch: list[ASTNode], else_branch: list[ASTNode]):
+    def __init__(self, condition: ASTNode, then_branch: list[ASTNode], 
+                 elif_branches: list[tuple[ASTNode, list[ASTNode]]], 
+                 else_branch: list[ASTNode]) -> None:
         """Initializes an IfNode with a condition and code blocks for true/false results."""
         self.condition = condition
         self.then_branch = then_branch
+        self.elif_branches = elif_branches
         self.else_branch = else_branch
 
     def __repr__(self):

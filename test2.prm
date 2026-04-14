@@ -1,2 +1,22 @@
 
-print((4 ** 2 + (3 * 2)) / (10 + 1));
+int a = 1;
+
+if (a > 10)
+{
+    print("IF");
+}
+
+elif (a > 5)
+{
+    print("ELIF 1");
+}
+
+elif (a > 3)
+{
+    print("ELIF 2");
+}
+
+else
+{
+    print("ELSE");
+}

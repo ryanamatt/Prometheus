@@ -216,7 +216,21 @@ class Parser:
             then_branch.append(self.parse_statement())
         self.eat(TokenType.RBRACE)
 
-        else_branch: list[ASTNode] | None = []
+        elif_branches: list[tuple[ASTNode, list[ASTNode]]] = []
+        while self.current_token().token_type == TokenType.ELIF:
+            self.eat(TokenType.ELIF)
+            self.eat(TokenType.LPAREN)
+            elif_cond: ASTNode = self.parse_expression()
+            self.eat(TokenType.RPAREN)
+
+            self.eat(TokenType.LBRACE)
+            elif_stmts: list[ASTNode] = []
+            while self.current_token().token_type != TokenType.RBRACE:
+                elif_stmts.append(self.parse_statement())
+            self.eat(TokenType.RBRACE)
+            elif_branches.append((elif_cond, elif_stmts))
+
+        else_branch: list[ASTNode] = []
         if self.current_token().token_type == TokenType.ELSE:
             self.eat(TokenType.ELSE)
             self.eat(TokenType.LBRACE)
@@ -224,4 +238,4 @@ class Parser:
                 else_branch.append(self.parse_statement())
             self.eat(TokenType.RBRACE)
 
-        return IfNode(condition, then_branch, else_branch)
+        return IfNode(condition, then_branch, elif_branches, else_branch)
