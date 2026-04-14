@@ -9,19 +9,11 @@ class Lexer:
     """
     Performs lexical analysis on a source file to produce a token stream.
     """
-    def __init__(self, filename: str):
+    def __init__(self, source: str):
         """Initializes the Lexer and reads the content of the specified file."""
-        self.filename: str = filename
-        self.source: str = ""
+        self.source: str = source
         self.tokens: list[Token] = []
         self.current_pos: int = 0
-
-        self._read_file()
-
-    def _read_file(self) -> None:
-        """Reads the source code from the filesystem into memory."""
-        with open(self.filename, 'r') as f:
-            self.source = f.read()
 
     def tokenize(self) -> list[Token]:
         """

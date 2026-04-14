@@ -19,7 +19,10 @@ def main():
     
     filename: str = sys.argv[1]
 
-    lexer: Lexer = Lexer(filename=filename)
+    with open(filename, 'r') as f:
+            source = f.read()
+
+    lexer: Lexer = Lexer(source=source)
     tokens = lexer.tokenize()
 
     parser: Parser = Parser(tokens)

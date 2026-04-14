@@ -23,19 +23,19 @@ check_status(final_score);
 
 // Iterating through a range
 for (int i in 0..10) {
-    print("Value is:", i); [cite: 2]
+    print("Value is:", i);
 }
 
 // initialization; condition; increment
 for (int i = 0; i < 10; i = i + 1) {
     if (i == 5) {
-        print("Halfway there!"); [cite: 2]
+        print("Halfway there!");
     }
 }
 
 // Iterating through a collection
 for (str name in list_of_names) {
-    print(name); [cite: 2]
+    print(name);
 }
 
 // A sample of the expanded syntax
