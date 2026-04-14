@@ -1,20 +1,22 @@
+"""
+The execution engine for the Prometheus language. 
+It traverses the AST and executes the logic defined in the nodes.
+"""
+from typing import Any
 from ast_nodes import ASTNode, NumberNode, StringNode, VarNode, BinOpNode, VarDeclNode, PrintNode, IfNode
 from prometheus_types import TokenType
-from typing import Any
 
 class Interpreter:
     """
-    
+    Handles the evaluation of AST nodes and maintains the runtime state (variables).
     """
     def __init__(self) -> None:
-        """
-        
-        """
+        """Initializes a new Interpreter with an empty variable memory."""
         self.variables: dict[str, Any] = {}
 
     def visit(self, node: ASTNode) -> Any:
         """
-        
+        Recursively visits an AST node and evaluates its value or executes its logic.
         """
         if isinstance(node, NumberNode):
             return float(node.value) if '.' in node.value else int(node.value)
@@ -80,6 +82,9 @@ class Interpreter:
         
 
     def interpret(self, nodes: list[ASTNode]):
+        """
+        Iterates through a list of top-level AST nodes and executes them in order.
+        """
         for node in nodes:
             result = self.visit(node)
         return result

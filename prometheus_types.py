@@ -1,6 +1,15 @@
+"""
+Defines the core data types and token definitions used across the 
+Prometheus interpreter ecosystem.
+"""
+
 from enum import Enum, auto
 
 class TokenType(Enum):
+    """
+    Enumeration of all valid token types supported by the 
+    Prometheus Lexer and Parser.
+    """
     # Data Types
     INT = auto()
     STR = auto()
@@ -45,4 +54,17 @@ class TokenType(Enum):
     COMMA = auto()      # ,
 
     def __repr__(self) -> str:
+        """Returns the string representation of the Enum value."""
         return f"{self.value}"
+    
+class Token:
+    """
+    A small container representing a single meaningful unit of code (lexemes).
+    """
+    def __init__(self, token_type: TokenType, value: str) -> None:
+        """Initializes a Token with a type and its literal string value."""
+        self.token_type = token_type
+        self.value = value
+
+    def __repr__(self):
+        return f"Token({self.token_type}, '{self.value}')"

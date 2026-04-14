@@ -1,9 +1,18 @@
+"""
+The main entry point for the Prometheus Interpreter.
+Orchestrates the Lexer, Parser, and Interpreter to run a source file.
+"""
+
 import sys
 from lexer import Lexer
 from parser import Parser
 from interpreter import Interpreter
 
 def main():
+    """
+    Handles command-line arguments, initializes the pipeline, 
+    and prints the final state of the interpreter memory.
+    """
     if len(sys.argv) < 2:
         print("Prometheus Requires a File to Run. python prometheus.py [filename]")
         sys.exit()

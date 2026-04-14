@@ -1,31 +1,16 @@
+"""
+Scanner/Lexer module for Prometheus.
+Converts raw source code text into a sequence of structured Tokens.
+"""
 
-from prometheus_types import TokenType
-
-class Token:
-    """
-    
-    """
-    def __init__(self, token_type: TokenType, value: str) -> None:
-        """
-        
-        """
-        self.token_type = token_type
-        self.value = value
-
-    def __repr__(self):
-        """
-        
-        """
-        return f"Token({self.token_type}, '{self.value}')"
+from prometheus_types import TokenType, Token
 
 class Lexer:
     """
-    
+    Performs lexical analysis on a source file to produce a token stream.
     """
     def __init__(self, filename: str):
-        """
-        
-        """
+        """Initializes the Lexer and reads the content of the specified file."""
         self.filename: str = filename
         self.source: str = ""
         self.tokens: list[Token] = []
@@ -34,15 +19,13 @@ class Lexer:
         self._read_file()
 
     def _read_file(self) -> None:
-        """
-        
-        """
+        """Reads the source code from the filesystem into memory."""
         with open(self.filename, 'r') as f:
             self.source = f.read()
 
     def tokenize(self) -> list[Token]:
         """
-        
+        Processes the source string and returns a list of Token objects.
         """
         symbol_map = {
             '=': TokenType.ASSIGN,
@@ -110,9 +93,7 @@ class Lexer:
         return self.tokens
 
     def _make_identifier(self) -> Token:
-        """
-        
-        """
+        """Extracts and returns an alphanumeric identifier or keyword token."""
         word: str = ""
         # Keep Reading as as it's alphanumberic
         while self.current_pos < len(self.source) and (self.source[self.current_pos].isalnum() 
@@ -129,9 +110,7 @@ class Lexer:
             return Token(TokenType.IDENTIFIER, word)
 
     def _make_number(self) -> Token:
-        """
-        
-        """
+        """Extracts and returns a numeric (integer or float) token."""
         num_str = ""
         while self.current_pos < len(self.source) and (self.source[self.current_pos].isdigit() or self.source[self.current_pos] == '.'):
             num_str += self.source[self.current_pos]
@@ -140,9 +119,7 @@ class Lexer:
         return Token(TokenType.NUMBER, num_str)
     
     def _make_string(self) -> Token:
-        """
-        
-        """
+        """Extracts and returns a string literal token, handling double quotes."""
         string_val = ""
         self.current_pos += 1  # Skip opening "
         while self.current_pos < len(self.source) and self.source[self.current_pos] != '"':

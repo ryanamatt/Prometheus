@@ -1,31 +1,34 @@
+"""
+The Syntax Analyzer for Prometheus.
+Consumes tokens from the Lexer and builds an Abstract Syntax Tree (AST) 
+based on the language grammar.
+"""
 
 from prometheus_types import TokenType
-from ast_nodes import ASTNode, NumberNode, StringNode, VarNode, BinOpNode, VarDeclNode, PrintNode, IfNode
+from ast_nodes import NumberNode, StringNode, VarNode, BinOpNode, VarDeclNode, PrintNode, IfNode
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from lexer import Token
+    from ast_nodes import ASTNode
+    from prometheus_types import Token
 
 class Parser:
     """
-    
+    Implements a recursive descent parser to convert tokens into an AST.
     """
     def __init__(self, tokens: list[Token]) -> None:
-        """
-        
-        """
+        """Initializes the Parser with a list of tokens and a pointer."""
         self.tokens: list[Token] = tokens
         self.pos = 0
 
     def current_token(self) -> Token | None:
-        """
-        
-        """
+        """Returns the token currently pointed to by the parser."""
         return self.tokens[self.pos] if self.pos < len(self.tokens) else None
 
     def eat(self, expected_type: TokenType) -> Token:
         """
-        
+        Validates the current token type and moves the pointer forward.
+        Raises a Syntax Error if the type does not match.
         """
         token: Token | None = self.current_token()
 
@@ -37,9 +40,7 @@ class Parser:
         
 
     def parse(self) -> list[ASTNode]:
-        """
-        
-        """
+        """Entry point for parsing the entire token stream into a list of statements."""
         nodes: list[ASTNode] = []
         while self.pos < len(self.tokens):
             node: ASTNode | None = self.parse_statement()
@@ -49,9 +50,7 @@ class Parser:
         return nodes
 
     def parse_statement(self) -> ASTNode | None:
-        """
-        
-        """
+        """Determines the type of statement and routes to the specific parsing method."""
         token: Token | None = self.current_token()
         if token and token.token_type in [TokenType.INT, TokenType.STR, TokenType.DOUBLE]:
             return self.parse_declaration()
@@ -66,9 +65,7 @@ class Parser:
         return None
 
     def parse_declaration(self) -> ASTNode | None:
-        """
-        
-        """
+        """Parses variable declarations (e.g., 'int x = 10;')."""
         current_token = self.current_token()
         if not current_token: return
 
@@ -83,9 +80,7 @@ class Parser:
         return VarDeclNode(type_token.value, name_token.value, value_node)
 
     def parse_expression(self) -> ASTNode:
-        """
-
-        """
+        """Parses the lowest level of expression precedence (comparisons)."""
         # First, parse addition/subtraction
         node = self.parse_math_operations()
         
@@ -121,9 +116,7 @@ class Parser:
         return node
     
     def parse_math_operations(self) -> ASTNode:
-        """
-        
-        """
+        """Parses additive operations (+, -)."""
         node = self.parse_factor()
         while token := self.current_token():
             if token.token_type in [TokenType.PLUS, TokenType.MINUS]:
@@ -135,9 +128,7 @@ class Parser:
         return node
     
     def parse_factor(self) -> ASTNode:
-        """
-        Handles Multiplication and Division (Higher precedence than +/-)
-        """
+        """Parses multiplicative operations (*, /, %)."""
         node = self.parse_exponent()
         while token := self.current_token():
 
@@ -150,9 +141,7 @@ class Parser:
         return node
     
     def parse_exponent(self) -> ASTNode:
-        """
-        Handles the Parsing of the Exponent.
-        """
+        """Parses exponentiation operations (**)."""
         node = self.parse_parentheses()
         while token := self.current_token():
 
@@ -165,9 +154,7 @@ class Parser:
         return node
     
     def parse_parentheses(self) -> ASTNode:
-        """
-        
-        """
+        """Handles grouped expressions inside parentheses."""
         token = self.current_token()
 
         if token and token.token_type == TokenType.LPAREN:
@@ -181,9 +168,7 @@ class Parser:
                 
 
     def parse_term(self) -> ASTNode:
-        """
-        Handles single values or variables (highest priority).
-        """
+        """Parses the highest priority elements (numbers, strings, identifiers)."""
         token = self.current_token()
         if not token: return ASTNode()
 
@@ -199,9 +184,7 @@ class Parser:
         raise Exception(f"Expected expression, got {token.token_type}")
     
     def parse_print(self) -> PrintNode:
-        """
-        
-        """
+        """Parses 'print' statements and their arguments."""
         self.eat(TokenType.PRINT)
         self.eat(TokenType.LPAREN)
 
@@ -217,6 +200,7 @@ class Parser:
         return PrintNode(expressions)
     
     def parse_if(self) -> IfNode:
+        """Parses 'if' statements, including optional 'else' blocks."""
         self.eat(TokenType.IF)
         self.eat(TokenType.LPAREN)
         condition = self.parse_expression()
