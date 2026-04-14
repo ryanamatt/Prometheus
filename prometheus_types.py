@@ -52,6 +52,7 @@ class TokenType(Enum):
 
     SEMICOLON = auto()  # ;
     COMMA = auto()      # ,
+    EOF = auto()        # EOF
 
     def __repr__(self) -> str:
         """Returns the string representation of the Enum value."""

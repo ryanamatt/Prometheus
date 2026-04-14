@@ -90,6 +90,7 @@ class Lexer:
                 # print("Unknown Character:", char)
                 self.current_pos += 1
 
+        self.tokens.append(Token(TokenType.EOF, "EOF"))
         return self.tokens
 
     def _make_identifier(self) -> Token:

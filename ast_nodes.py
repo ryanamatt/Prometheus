@@ -75,7 +75,7 @@ class PrintNode(ASTNode):
     
 class IfNode(ASTNode):
     """Represents an 'if-else' control flow structure."""
-    def __init__(self, condition: ASTNode, then_branch: list[ASTNode], else_branch: list[ASTNode] | None = None):
+    def __init__(self, condition: ASTNode, then_branch: list[ASTNode], else_branch: list[ASTNode]):
         """Initializes an IfNode with a condition and code blocks for true/false results."""
         self.condition = condition
         self.then_branch = then_branch
@@ -83,3 +83,8 @@ class IfNode(ASTNode):
 
     def __repr__(self):
         return f"If({self.condition}) {{ {self.then_branch} }} Else {{ {self.else_branch} }}"
+    
+class EOFNode(ASTNode):
+    """Sentinel node representing the end of a statement stream or file."""
+    def __repr__(self):
+        return "EOF"

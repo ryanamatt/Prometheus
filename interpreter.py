@@ -81,10 +81,12 @@ class Interpreter:
                     self.visit(stmt)
         
 
-    def interpret(self, nodes: list[ASTNode]):
+    def interpret(self, nodes: list[ASTNode]) -> Any:
         """
         Iterates through a list of top-level AST nodes and executes them in order.
         """
+        result: Any = None
         for node in nodes:
-            result = self.visit(node)
+            result: Any = self.visit(node)
+
         return result

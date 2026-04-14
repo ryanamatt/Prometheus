@@ -9,6 +9,4 @@ print(s, result);
 
 if (result >= 40) {
     print("Prometheus has brought the fire.");
-} else {
-    print("The flame is low.");
-}
+} 

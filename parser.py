@@ -5,7 +5,7 @@ based on the language grammar.
 """
 
 from prometheus_types import TokenType
-from ast_nodes import NumberNode, StringNode, VarNode, BinOpNode, VarDeclNode, PrintNode, IfNode
+from ast_nodes import NumberNode, StringNode, VarNode, BinOpNode, VarDeclNode, PrintNode, IfNode, EOFNode
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -21,18 +21,21 @@ class Parser:
         self.tokens: list[Token] = tokens
         self.pos = 0
 
-    def current_token(self) -> Token | None:
+    def current_token(self) -> Token:
         """Returns the token currently pointed to by the parser."""
-        return self.tokens[self.pos] if self.pos < len(self.tokens) else None
+        if self.pos < len(self.tokens):
+            return self.tokens[self.pos]
+        
+        return Token(TokenType.EOF, "EOF")
 
     def eat(self, expected_type: TokenType) -> Token:
         """
         Validates the current token type and moves the pointer forward.
         Raises a Syntax Error if the type does not match.
         """
-        token: Token | None = self.current_token()
+        token: Token = self.current_token()
 
-        if token and token.token_type == expected_type:
+        if token.token_type == expected_type:
             self.pos += 1
             return token
         else:
@@ -49,25 +52,27 @@ class Parser:
 
         return nodes
 
-    def parse_statement(self) -> ASTNode | None:
+    def parse_statement(self) -> ASTNode:
         """Determines the type of statement and routes to the specific parsing method."""
-        token: Token | None = self.current_token()
-        if token and token.token_type in [TokenType.INT, TokenType.STR, TokenType.DOUBLE]:
+        token: Token = self.current_token()
+        if token.token_type in [TokenType.INT, TokenType.STR, TokenType.DOUBLE]:
             return self.parse_declaration()
         
-        elif token and token.token_type == TokenType.PRINT:
+        elif token.token_type == TokenType.PRINT:
             return self.parse_print()
         
-        elif token and token.token_type == TokenType.IF:
+        elif token.token_type == TokenType.IF:
             return self.parse_if()
         
-        self.pos += 1
-        return None
+        elif token.token_type == TokenType.EOF:
+            self.pos += 1
+            return EOFNode()
+        
+        raise Exception(f"Unexpected token: {token.token_type}")
 
-    def parse_declaration(self) -> ASTNode | None:
+    def parse_declaration(self) -> ASTNode:
         """Parses variable declarations (e.g., 'int x = 10;')."""
-        current_token = self.current_token()
-        if not current_token: return
+        current_token: Token = self.current_token()
 
         type_token: Token = self.eat(current_token.token_type)
         name_token: Token = self.eat(TokenType.IDENTIFIER)
@@ -169,8 +174,7 @@ class Parser:
 
     def parse_term(self) -> ASTNode:
         """Parses the highest priority elements (numbers, strings, identifiers)."""
-        token = self.current_token()
-        if not token: return ASTNode()
+        token: Token = self.current_token()
 
         if token.token_type == TokenType.NUMBER:
             return NumberNode(self.eat(TokenType.NUMBER))
@@ -191,7 +195,7 @@ class Parser:
         expressions: list[ASTNode] = []
         expressions.append(self.parse_expression())
 
-        while self.current_token() and self.current_token().token_type == TokenType.COMMA:
+        while self.current_token().token_type == TokenType.COMMA:
             self.eat(TokenType.COMMA)
             expressions.append(self.parse_expression())
 
@@ -207,16 +211,16 @@ class Parser:
         self.eat(TokenType.RPAREN)
 
         self.eat(TokenType.LBRACE)
-        then_branch: list[ASTNode | None] = []
-        while self.current_token() and self.current_token().token_type != TokenType.RBRACE:
+        then_branch: list[ASTNode] = []
+        while self.current_token().token_type != TokenType.RBRACE:
             then_branch.append(self.parse_statement())
         self.eat(TokenType.RBRACE)
 
-        else_branch: list[ASTNode | None] = []
-        if self.current_token() and self.current_token().token_type == TokenType.ELSE:
+        else_branch: list[ASTNode] | None = []
+        if self.current_token().token_type == TokenType.ELSE:
             self.eat(TokenType.ELSE)
             self.eat(TokenType.LBRACE)
-            while self.current_token() and self.current_token().token_type != TokenType.RBRACE:
+            while self.current_token().token_type != TokenType.RBRACE:
                 else_branch.append(self.parse_statement())
             self.eat(TokenType.RBRACE)
 
