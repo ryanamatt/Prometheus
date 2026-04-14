@@ -143,7 +143,7 @@ class Parser:
 
             if token.token_type in [TokenType.MULTIPLY, TokenType.DIVIDE, TokenType.MODULO]:
                 op = self.eat(token.token_type)
-                node = BinOpNode(left=node, op=op, right=self.parse_term())
+                node = BinOpNode(left=node, op=op, right=self.parse_exponent())
 
             else:
                 break
@@ -153,16 +153,32 @@ class Parser:
         """
         Handles the Parsing of the Exponent.
         """
-        node = self.parse_term()
+        node = self.parse_parentheses()
         while token := self.current_token():
 
             if token.token_type == TokenType.EXPONENT:
                 op = self.eat(token.token_type)
-                node = BinOpNode(left=node, op=op, right=self.parse_term())
+                node = BinOpNode(left=node, op=op, right=self.parse_parentheses())
 
             else:
                 break
         return node
+    
+    def parse_parentheses(self) -> ASTNode:
+        """
+        
+        """
+        token = self.current_token()
+
+        if token and token.token_type == TokenType.LPAREN:
+            self.eat(TokenType.LPAREN)
+            # Restart the hierarchy from the bottom (expression)
+            node = self.parse_expression() 
+            self.eat(TokenType.RPAREN)
+            return node
+
+        return self.parse_term()
+                
 
     def parse_term(self) -> ASTNode:
         """
