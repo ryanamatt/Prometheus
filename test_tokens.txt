@@ -1,0 +1,11 @@
+[Token(PrometheusTypes.int, 'int'), Token(IDENTIFIER, 'a'), Token(SYMBOL, '='), Token(NUMBER, '15'), Token(SYMBOL, ';'), 
+Token(PrometheusTypes.int, 'int'), Token(IDENTIFIER, 'b'), Token(SYMBOL, '='), Token(NUMBER, '30'), Token(SYMBOL, ';'), 
+Token(PrometheusTypes.int, 'int'), Token(IDENTIFIER, 'result'), Token(SYMBOL, '='), Token(IDENTIFIER, 'a'), Token(SYMBOL, '+'), Token(IDENTIFIER, 'b'), Token(SYMBOL, ';'), 
+Token(Keyword, 'print'), Token(SYMBOL, '('), Token(IDENTIFIER, 'The'), Token(IDENTIFIER, 'sum'), Token(IDENTIFIER, 'of'), Token(IDENTIFIER, 'a'), Token(IDENTIFIER, 'and'), Token(IDENTIFIER, 'b'), Token(IDENTIFIER, 'is'), Token(IDENTIFIER, 'result'), Token(SYMBOL, ')'), Token(SYMBOL, ';'), 
+Token(Keyword, 'if'), Token(SYMBOL, '('), Token(IDENTIFIER, 'result'), Token(SYMBOL, '>'), Token(NUMBER, '40'), Token(SYMBOL, ')'), Token(SYMBOL, '{'), 
+Token(Keyword, 'print'), Token(SYMBOL, '('), Token(IDENTIFIER, 'Prometheus'), Token(IDENTIFIER, 'has'), Token(IDENTIFIER, 'brought'), Token(IDENTIFIER, 'the'), Token(IDENTIFIER, 'fire'), Token(SYMBOL, ')'), Token(SYMBOL, ';'), 
+Token(SYMBOL, '}'), Token(Keyword, 'else'), Token(SYMBOL, '{'), 
+Token(Keyword, 'print'), Token(SYMBOL, '('), Token(IDENTIFIER, 'The'), Token(IDENTIFIER, 'flame'), Token(IDENTIFIER, 'is'), Token(IDENTIFIER, 'low'), Token(SYMBOL, ')'), Token(SYMBOL, ';'), 
+Token(SYMBOL, '}')]
+
+
