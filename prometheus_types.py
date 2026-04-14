@@ -44,7 +44,10 @@ class TokenType(Enum):
     GREATER = auto()    # >
     LESSER = auto()     # <
     GREATEREQ = auto()  # >=
-    LESSEREQ = auto()     # <=
+    LESSEREQ = auto()   # <=
+
+    # Loops
+    WHILE = auto()
 
     LPAREN = auto()     # (
     RPAREN = auto()     # )

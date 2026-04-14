@@ -3,9 +3,9 @@ The Syntax Analyzer for Prometheus.
 Consumes tokens from the Lexer and builds an Abstract Syntax Tree (AST) 
 based on the language grammar.
 """
-
+import sys
 from prometheus_types import TokenType
-from ast_nodes import NumberNode, StringNode, VarNode, BinOpNode, VarDeclNode, PrintNode, IfNode, EOFNode
+from ast_nodes import NumberNode, StringNode, VarNode, BinOpNode, VarDeclNode, PrintNode, IfNode, LoopNode, EOFNode
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -54,15 +54,22 @@ class Parser:
 
     def parse_statement(self) -> ASTNode:
         """Determines the type of statement and routes to the specific parsing method."""
+
         token: Token = self.current_token()
         if token.token_type in [TokenType.INT, TokenType.STR, TokenType.DOUBLE]:
             return self.parse_declaration()
+        
+        elif token.token_type == TokenType.IDENTIFIER:
+            return self.parse_identifier()
         
         elif token.token_type == TokenType.PRINT:
             return self.parse_print()
         
         elif token.token_type == TokenType.IF:
             return self.parse_if()
+        
+        elif token.token_type == TokenType.WHILE:
+            return self.parse_while()
         
         elif token.token_type == TokenType.EOF:
             self.pos += 1
@@ -83,6 +90,15 @@ class Parser:
         self.eat(TokenType.SEMICOLON)
         # print(f"Parsed Declaration for: {name_token.value} from Type Token: {type_token}")
         return VarDeclNode(type_token.value, name_token.value, value_node)
+    
+    def parse_identifier(self) -> ASTNode:
+        """Parses an Identifier of x = x + 1"""
+        current_token: Token = self.eat(TokenType.IDENTIFIER)
+        self.eat(TokenType.ASSIGN)
+
+        value_node: ASTNode = self.parse_expression()
+        self.eat(TokenType.SEMICOLON)
+        return VarDeclNode(current_token.value, current_token.value, value_node)
 
     def parse_expression(self) -> ASTNode:
         """Parses the lowest level of expression precedence (comparisons)."""
@@ -115,6 +131,7 @@ class Parser:
             elif token.token_type == TokenType.LESSEREQ:
                 op = self.eat(TokenType.LESSEREQ)
                 node = BinOpNode(left=node, op=op, right=self.parse_math_operations())
+
             else:
                 break
         
@@ -239,3 +256,19 @@ class Parser:
             self.eat(TokenType.RBRACE)
 
         return IfNode(condition, then_branch, elif_branches, else_branch)
+    
+    def parse_while(self) -> ASTNode:
+        """Parses a While Loop"""
+        self.eat(TokenType.WHILE)
+        self.eat(TokenType.LPAREN)
+        condition: ASTNode = self.parse_expression()
+        self.eat(TokenType.RPAREN)
+
+        do_branch: list[ASTNode] = []
+
+        self.eat(TokenType.LBRACE)
+        while self.current_token().token_type != TokenType.RBRACE:
+            do_branch.append(self.parse_statement())
+        self.eat(TokenType.RBRACE)
+        
+        return LoopNode(condition, do_branch)

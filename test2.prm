@@ -1,22 +1,6 @@
 
-int a = 1;
+int var = 1;
+print(var);
 
-if (a > 10)
-{
-    print("IF");
-}
-
-elif (a > 5)
-{
-    print("ELIF 1");
-}
-
-elif (a > 3)
-{
-    print("ELIF 2");
-}
-
-else
-{
-    print("ELSE");
-}
+var = var + 1;
+print(var);
