@@ -65,7 +65,7 @@ class Parser:
         self.pos += 1
         return None
 
-    def parse_declaration(self):
+    def parse_declaration(self) -> ASTNode | None:
         """
         
         """
@@ -138,10 +138,25 @@ class Parser:
         """
         Handles Multiplication and Division (Higher precedence than +/-)
         """
-        node = self.parse_term()
+        node = self.parse_exponent()
         while token := self.current_token():
 
             if token.token_type in [TokenType.MULTIPLY, TokenType.DIVIDE, TokenType.MODULO]:
+                op = self.eat(token.token_type)
+                node = BinOpNode(left=node, op=op, right=self.parse_term())
+
+            else:
+                break
+        return node
+    
+    def parse_exponent(self) -> ASTNode:
+        """
+        Handles the Parsing of the Exponent.
+        """
+        node = self.parse_term()
+        while token := self.current_token():
+
+            if token.token_type == TokenType.EXPONENT:
                 op = self.eat(token.token_type)
                 node = BinOpNode(left=node, op=op, right=self.parse_term())
 
@@ -164,7 +179,7 @@ class Parser:
         
         elif token.token_type == TokenType.IDENTIFIER:
             return VarNode(self.eat(TokenType.IDENTIFIER))
-        
+                
         raise Exception(f"Expected expression, got {token.token_type}")
     
     def parse_print(self) -> PrintNode:

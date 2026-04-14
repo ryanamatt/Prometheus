@@ -1,10 +1,2 @@
-double a = 4;
-double b = 3;
 
-if (a % b == 1)
-{
-    print("SUCCESS");
-}
-else {
-    print("FAIL");
-}
+print(4 ** 2 + 3 * 2);

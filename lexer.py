@@ -78,7 +78,11 @@ class Lexer:
                 self.tokens.append(self._make_string())
 
             elif char in symbol_map: # Add symbols here
-                if self.current_pos + 1 < len(self.source) and char == '>' and self.source[self.current_pos + 1] == '=':
+                if self.current_pos + 1 < len(self.source) and char == '*' and self.source[self.current_pos + 1] == '*':
+                    self.tokens.append(Token(TokenType.EXPONENT, '**'))
+                    self.current_pos += 2
+
+                elif self.current_pos + 1 < len(self.source) and char == '>' and self.source[self.current_pos + 1] == '=':
                     self.tokens.append(Token(TokenType.GREATEREQ, ">="))
                     self.current_pos += 2
 

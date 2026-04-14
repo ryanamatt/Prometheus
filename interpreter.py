@@ -41,6 +41,8 @@ class Interpreter:
                 return left_val / right_val
             elif node.op.token_type == TokenType.MODULO:
                 return left_val % right_val
+            elif node.op.token_type == TokenType.EXPONENT:
+                return left_val ** right_val
             
             elif node.op.token_type == TokenType.EQUAL:
                 return left_val == right_val
