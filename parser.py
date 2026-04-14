@@ -87,47 +87,66 @@ class Parser:
 
         """
         # First, parse addition/subtraction
-        node = self.parse_additive()
+        node = self.parse_math_operations()
         
         # Check for all comparison operators
-        while (token := self.current_token()):
+        while token := self.current_token():
 
             if token.token_type == TokenType.EQUAL:
                 op = self.eat(TokenType.EQUAL)
-                node = BinOpNode(left=node, op=op, right=self.parse_additive())
+                node = BinOpNode(left=node, op=op, right=self.parse_math_operations())
 
             elif token.token_type == TokenType.NOTEQUAL:
                 op = self.eat(TokenType.NOTEQUAL)
-                node = BinOpNode(left=node, op=op, right=self.parse_additive())
+                node = BinOpNode(left=node, op=op, right=self.parse_math_operations())
 
             if token.token_type == TokenType.GREATER:
                 op = self.eat(TokenType.GREATER)
-                node = BinOpNode(left=node, op=op, right=self.parse_additive())
+                node = BinOpNode(left=node, op=op, right=self.parse_math_operations())
 
             elif token.token_type == TokenType.GREATEREQ:
                 op = self.eat(TokenType.GREATEREQ)
-                node = BinOpNode(left=node, op=op, right=self.parse_additive())
+                node = BinOpNode(left=node, op=op, right=self.parse_math_operations())
 
             elif token.token_type == TokenType.LESSER:
                 op = self.eat(TokenType.LESSER)
-                node = BinOpNode(left=node, op=op, right=self.parse_additive())
+                node = BinOpNode(left=node, op=op, right=self.parse_math_operations())
 
             elif token.token_type == TokenType.LESSEREQ:
                 op = self.eat(TokenType.LESSEREQ)
-                node = BinOpNode(left=node, op=op, right=self.parse_additive())
+                node = BinOpNode(left=node, op=op, right=self.parse_math_operations())
             else:
                 break
         
         return node
     
-    def parse_additive(self) -> ASTNode:
+    def parse_math_operations(self) -> ASTNode:
         """
         
         """
+        node = self.parse_factor()
+        while token := self.current_token():
+            if token.token_type in [TokenType.PLUS, TokenType.MINUS]:
+                op = self.eat(token.token_type)
+                node = BinOpNode(left=node, op=op, right=self.parse_factor())
+
+            else:
+                break
+        return node
+    
+    def parse_factor(self) -> ASTNode:
+        """
+        Handles Multiplication and Division (Higher precedence than +/-)
+        """
         node = self.parse_term()
-        while (token := self.current_token()) and token.token_type == TokenType.PLUS:
-            op = self.eat(TokenType.PLUS)
-            node = BinOpNode(left=node, op=op, right=self.parse_term())
+        while token := self.current_token():
+
+            if token.token_type in [TokenType.MULTIPLY, TokenType.DIVIDE, TokenType.MODULO]:
+                op = self.eat(token.token_type)
+                node = BinOpNode(left=node, op=op, right=self.parse_term())
+
+            else:
+                break
         return node
 
     def parse_term(self) -> ASTNode:

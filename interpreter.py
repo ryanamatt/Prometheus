@@ -33,6 +33,14 @@ class Interpreter:
 
             if node.op.token_type == TokenType.PLUS:
                 return left_val + right_val
+            elif node.op.token_type == TokenType.MINUS:
+                return left_val - right_val
+            elif node.op.token_type == TokenType.MULTIPLY:
+                return left_val * right_val
+            elif node.op.token_type == TokenType.DIVIDE:
+                return left_val / right_val
+            elif node.op.token_type == TokenType.MODULO:
+                return left_val % right_val
             
             elif node.op.token_type == TokenType.EQUAL:
                 return left_val == right_val

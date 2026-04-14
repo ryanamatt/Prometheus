@@ -18,7 +18,14 @@ class TokenType(Enum):
     
     # Symbols
     ASSIGN = auto()     # =
+    NOT = auto()        # !
+
+    # Math Operators
     PLUS = auto()       # +
+    MINUS = auto()      # -
+    MULTIPLY = auto()   # *
+    DIVIDE = auto()     # /
+    MODULO = auto()     # % 
 
     # Comparison Operators
     EQUAL = auto()      # ==

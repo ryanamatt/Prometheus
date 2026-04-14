@@ -46,7 +46,12 @@ class Lexer:
         """
         symbol_map = {
             '=': TokenType.ASSIGN,
+            '!': TokenType.NOT,
             '+': TokenType.PLUS,
+            '-': TokenType.MINUS,
+            '*': TokenType.MULTIPLY,
+            '/': TokenType.DIVIDE,
+            '%': TokenType.MODULO,
             '>': TokenType.GREATER,
             '<': TokenType.LESSER,
             '(': TokenType.LPAREN,
@@ -73,39 +78,25 @@ class Lexer:
                 self.tokens.append(self._make_string())
 
             elif char in symbol_map: # Add symbols here
-                match char:
-                    case '>':
-                        if self.current_pos + 1 < len(self.source) and self.source[self.current_pos + 1] == '=':
-                            self.tokens.append(Token(TokenType.GREATEREQ, ">="))
-                            self.current_pos += 2
-                        else:
-                            self.tokens.append(Token(TokenType.GREATER, ">"))
-                            self.current_pos += 1
+                if self.current_pos + 1 < len(self.source) and char == '>' and self.source[self.current_pos + 1] == '=':
+                    self.tokens.append(Token(TokenType.GREATEREQ, ">="))
+                    self.current_pos += 2
 
-                    case '<':
-                        if self.current_pos + 1 < len(self.source) and self.source[self.current_pos + 1] == '=':
-                            self.tokens.append(Token(TokenType.LESSEREQ, "<="))
-                            self.current_pos += 2
-                        else:
-                            self.tokens.append(Token(TokenType.LESSER, "<"))
-                            self.current_pos += 1
+                elif self.current_pos + 1 < len(self.source) and char == '<' and self.source[self.current_pos + 1] == '=':
+                    self.tokens.append(Token(TokenType.LESSEREQ, "<="))
+                    self.current_pos += 2
 
-                    case '=':
-                        if self.current_pos + 1 < len(self.source) and self.source[self.current_pos + 1] == '=':
-                            self.tokens.append(Token(TokenType.EQUAL, "=="))
-                            self.current_pos += 2
-                        else:
-                            self.tokens.append(Token(TokenType.ASSIGN, "="))
-                            self.current_pos += 1
+                elif self.current_pos + 1 < len(self.source) and char == '=' and self.source[self.current_pos + 1] == '=':
+                    self.tokens.append(Token(TokenType.EQUAL, "=="))
+                    self.current_pos += 2
 
-                    case '!':
-                        if self.current_pos + 1 < len(self.source) and self.source[self.current_pos + 1] == '=':
-                            self.tokens.append(Token(TokenType.NOTEQUAL, "!="))
-                            self.current_pos += 2
+                elif self.current_pos + 1 < len(self.source) and char == '!' and self.source[self.current_pos + 1] == '=':
+                        self.tokens.append(Token(TokenType.NOTEQUAL, "!="))
+                        self.current_pos += 2
 
-                    case _:
-                        self.tokens.append(Token(symbol_map[char], char))
-                        self.current_pos += 1
+                else:
+                    self.tokens.append(Token(symbol_map[char], char))
+                    self.current_pos += 1
 
             else:
                 # Handle unknown characters
