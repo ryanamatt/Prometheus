@@ -3,7 +3,7 @@ The execution engine for the Prometheus language.
 It traverses the AST and executes the logic defined in the nodes.
 """
 from typing import Any
-from ast_nodes import ASTNode, NumberNode, StringNode, VarNode, BinOpNode, VarDeclNode, PrintNode, IfNode, LoopNode
+from ast_nodes import ASTNode, NumberNode, StringNode, VarNode, BinOpNode, VarDeclNode, PrintNode, IfNode, WhileNode
 from prometheus_types import TokenType
 
 class Interpreter:
@@ -58,6 +58,10 @@ class Interpreter:
                 return left_val < right_val
             elif node.op.token_type == TokenType.LESSEREQ:
                 return left_val <= right_val
+            elif node.op.token_type == TokenType.AND:
+                return left_val and right_val
+            elif node.op.token_type == TokenType.OR:
+                return left_val or right_val
             
         elif isinstance(node, VarDeclNode):
             value = self.visit(node.value_node)
@@ -90,7 +94,7 @@ class Interpreter:
                 for stmt in node.else_branch:
                     self.visit(stmt)
 
-        elif isinstance(node, LoopNode):
+        elif isinstance(node, WhileNode):
             while self.visit(node.condition):
                 for stmt in node.do_branch:
                     self.visit(stmt)

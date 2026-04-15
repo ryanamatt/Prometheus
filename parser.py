@@ -5,7 +5,7 @@ based on the language grammar.
 """
 import sys
 from prometheus_types import TokenType
-from ast_nodes import NumberNode, StringNode, VarNode, BinOpNode, VarDeclNode, PrintNode, IfNode, LoopNode, EOFNode
+from ast_nodes import NumberNode, StringNode, VarNode, BinOpNode, VarDeclNode, PrintNode, IfNode, WhileNode, EOFNode
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -130,6 +130,14 @@ class Parser:
 
             elif token.token_type == TokenType.LESSEREQ:
                 op = self.eat(TokenType.LESSEREQ)
+                node = BinOpNode(left=node, op=op, right=self.parse_math_operations())
+
+            elif token.token_type == TokenType.AND:
+                op = self.eat(TokenType.AND)
+                node = BinOpNode(left=node, op=op, right=self.parse_math_operations())
+
+            elif token.token_type == TokenType.OR:
+                op = self.eat(TokenType.OR)
                 node = BinOpNode(left=node, op=op, right=self.parse_math_operations())
 
             else:
@@ -271,4 +279,4 @@ class Parser:
             do_branch.append(self.parse_statement())
         self.eat(TokenType.RBRACE)
         
-        return LoopNode(condition, do_branch)
+        return WhileNode(condition, do_branch)

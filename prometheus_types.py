@@ -45,6 +45,8 @@ class TokenType(Enum):
     LESSER = auto()     # <
     GREATEREQ = auto()  # >=
     LESSEREQ = auto()   # <=
+    AND = auto()        # &&
+    OR = auto()         # OR
 
     # Loops
     WHILE = auto()

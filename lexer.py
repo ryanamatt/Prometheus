@@ -29,6 +29,8 @@ class Lexer:
             '%': TokenType.MODULO,
             '>': TokenType.GREATER,
             '<': TokenType.LESSER,
+            '&': TokenType.AND,
+            '|': TokenType.OR,
             '(': TokenType.LPAREN,
             ')': TokenType.RPAREN,
             '{': TokenType.LBRACE,
@@ -73,6 +75,14 @@ class Lexer:
                         self.tokens.append(Token(TokenType.NOTEQUAL, "!="))
                         self.current_pos += 2
 
+                elif self.current_pos + 1 < len(self.source) and char == '&' and self.source[self.current_pos + 1] == '&':
+                    self.tokens.append(Token(TokenType.AND, "&&"))
+                    self.current_pos += 2
+
+                elif self.current_pos + 1 < len(self.source) and char == '|' and self.source[self.current_pos + 1] == '|':
+                    self.tokens.append(Token(TokenType.OR, "||"))
+                    self.current_pos += 2
+
                 else:
                     self.tokens.append(Token(symbol_map[char], char))
                     self.current_pos += 1
@@ -108,7 +118,7 @@ class Lexer:
         while self.current_pos < len(self.source) and (self.source[self.current_pos].isdigit() or self.source[self.current_pos] == '.'):
             num_str += self.source[self.current_pos]
             self.current_pos += 1
-            
+        
         return Token(TokenType.NUMBER, num_str)
     
     def _make_string(self) -> Token:

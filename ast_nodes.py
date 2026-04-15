@@ -87,14 +87,15 @@ class IfNode(ASTNode):
     def __repr__(self):
         return f"If({self.condition}) {{ {self.then_branch} }} Else {{ {self.else_branch} }}"
     
-class LoopNode(ASTNode):
-    """Represents a loop node."""
+class WhileNode(ASTNode):
+    """Represents a While loop node."""
     def __init__(self, condition: ASTNode, do_branch: list[ASTNode]) -> None:
+        """Initiliazes a WhileNode with a condition and do_branch"""
         self.condition = condition
         self.do_branch = do_branch
 
     def __repr__(self):
-        return f"LOOP"
+        return f"While({self.condition}) Do: {self.do_branch}"
     
 class EOFNode(ASTNode):
     """Sentinel node representing the end of a statement stream or file."""
