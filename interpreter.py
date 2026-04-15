@@ -106,7 +106,7 @@ class Interpreter:
             while self.visit(node.condtion):
                 for stmt in node.do_branch:
                     self.visit(stmt)
-                    self.visit(node.change_var)
+                self.visit(node.change_var)
                 count += 1
                 if count == 1000:
                     raise RecursionError("Recursion for 1000, Likely inf Recursion Error.")
