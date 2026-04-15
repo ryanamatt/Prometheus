@@ -3,7 +3,7 @@ The execution engine for the Prometheus language.
 It traverses the AST and executes the logic defined in the nodes.
 """
 from typing import Any
-from ast_nodes import ASTNode, NumberNode, StringNode, VarNode, BinOpNode, VarDeclNode, PrintNode, IfNode, WhileNode
+from ast_nodes import ASTNode, NumberNode, StringNode, VarNode, BinOpNode, VarDeclNode, PrintNode, IfNode, WhileNode, ForNode
 from prometheus_types import TokenType
 
 class Interpreter:
@@ -98,6 +98,18 @@ class Interpreter:
             while self.visit(node.condition):
                 for stmt in node.do_branch:
                     self.visit(stmt)
+            return
+        
+        elif isinstance(node, ForNode):
+            count = 0
+            self.visit(node.variable)
+            while self.visit(node.condtion):
+                for stmt in node.do_branch:
+                    self.visit(stmt)
+                    self.visit(node.change_var)
+                count += 1
+                if count == 1000:
+                    raise RecursionError("Recursion for 1000, Likely inf Recursion Error.")
             return
 
     def interpret(self, nodes: list[ASTNode]) -> Any:

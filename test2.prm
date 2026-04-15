@@ -1,14 +1,5 @@
 
-int var1 = 10;
-
-int var2 = 15;
-
-if (var1 > 25 || var2 < 5)
+for (int i = 10; i > 0; i = i - 1;)
 {
-    print("Success");
-}
-
-else
-{
-    print("FAIL");
+    print(i);
 }

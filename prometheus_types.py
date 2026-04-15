@@ -49,7 +49,8 @@ class TokenType(Enum):
     OR = auto()         # OR
 
     # Loops
-    WHILE = auto()
+    WHILE = auto()      # WHILE
+    FOR = auto()        # FOR
 
     LPAREN = auto()     # (
     RPAREN = auto()     # )

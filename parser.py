@@ -5,7 +5,7 @@ based on the language grammar.
 """
 import sys
 from prometheus_types import TokenType
-from ast_nodes import NumberNode, StringNode, VarNode, BinOpNode, VarDeclNode, PrintNode, IfNode, WhileNode, EOFNode
+from ast_nodes import NumberNode, StringNode, VarNode, BinOpNode, VarDeclNode, PrintNode, IfNode, WhileNode, ForNode, EOFNode
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -70,6 +70,9 @@ class Parser:
         
         elif token.token_type == TokenType.WHILE:
             return self.parse_while()
+        
+        elif token.token_type == TokenType.FOR:
+            return self.parse_for()
         
         elif token.token_type == TokenType.EOF:
             self.pos += 1
@@ -280,3 +283,19 @@ class Parser:
         self.eat(TokenType.RBRACE)
         
         return WhileNode(condition, do_branch)
+    
+    def parse_for(self) -> ASTNode:
+        """Parses a For Loop."""
+        self.eat(TokenType.FOR)
+        self.eat(TokenType.LPAREN)
+        var: ASTNode = self.parse_declaration()
+        condition: ASTNode = self.parse_expression()
+        self.eat(TokenType.SEMICOLON)
+        change_var: ASTNode = self.parse_statement()
+        self.eat(TokenType.RPAREN)
+        self.eat(TokenType.LBRACE)
+        do_branch: list[ASTNode] = []
+        while self.current_token().token_type != TokenType.RBRACE:
+            do_branch.append(self.parse_statement())
+        self.eat(TokenType.RBRACE)
+        return ForNode(var, condition, change_var, do_branch)

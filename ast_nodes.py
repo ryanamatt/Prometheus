@@ -97,6 +97,16 @@ class WhileNode(ASTNode):
     def __repr__(self):
         return f"While({self.condition}) Do: {self.do_branch}"
     
+class ForNode(ASTNode):
+    """Represents a For Loop"""
+    def __init__(self, variable: ASTNode, condition: ASTNode, 
+                 change_var: ASTNode, do_branch: list[ASTNode]) -> None:
+        """Intitiliazes a ForNode with a variable, condition, do_branch"""
+        self.variable = variable
+        self.condtion = condition
+        self.change_var = change_var
+        self.do_branch = do_branch
+    
 class EOFNode(ASTNode):
     """Sentinel node representing the end of a statement stream or file."""
     def __repr__(self):
