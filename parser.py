@@ -3,9 +3,12 @@ The Syntax Analyzer for Prometheus.
 Consumes tokens from the Lexer and builds an Abstract Syntax Tree (AST) 
 based on the language grammar.
 """
-import sys
+
 from prometheus_types import TokenType
-from ast_nodes import NumberNode, StringNode, VarNode, BinOpNode, VarDeclNode, PrintNode, IfNode, WhileNode, ForNode, EOFNode
+from ast_nodes import (
+    NumberNode, StringNode, VarNode, BinOpNode, VarDeclNode, PrintNode, IfNode, WhileNode, ForNode, 
+    FunctionDeclNode, ReturnNode, CallNode, EOFNode
+)
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -27,6 +30,12 @@ class Parser:
             return self.tokens[self.pos]
         
         return Token(TokenType.EOF, "EOF")
+    
+    def peek(self) -> Token:
+        """Looks at the next token without consuming it."""
+        if self.pos + 1 < len(self.tokens):
+            return self.tokens[self.pos + 1]
+        return Token(TokenType.EOF, "EOF")
 
     def eat(self, expected_type: TokenType) -> Token:
         """
@@ -40,7 +49,6 @@ class Parser:
             return token
         else:
             raise Exception(f"Syntax Error: Expected {expected_type}, got {token.token_type if token else 'EOF'}")
-        
 
     def parse(self) -> list[ASTNode]:
         """Entry point for parsing the entire token stream into a list of statements."""
@@ -60,6 +68,8 @@ class Parser:
             return self.parse_declaration()
         
         elif token.token_type == TokenType.IDENTIFIER:
+            if self.peek().token_type == TokenType.LPAREN:
+                return self.parse_call()
             return self.parse_identifier()
         
         elif token.token_type == TokenType.PRINT:
@@ -73,6 +83,12 @@ class Parser:
         
         elif token.token_type == TokenType.FOR:
             return self.parse_for()
+        
+        elif token.token_type == TokenType.FUNC:
+            return self.parse_function()
+        
+        elif token.token_type == TokenType.RETURN:
+            return self.parse_return()
         
         elif token.token_type == TokenType.EOF:
             self.pos += 1
@@ -211,6 +227,8 @@ class Parser:
             return StringNode(self.eat(TokenType.STRING))
         
         elif token.token_type == TokenType.IDENTIFIER:
+            if self.peek().token_type == TokenType.LPAREN:
+                return self.parse_call()
             return VarNode(self.eat(TokenType.IDENTIFIER))
                 
         raise Exception(f"Expected expression, got {token.token_type}")
@@ -299,3 +317,50 @@ class Parser:
             do_branch.append(self.parse_statement())
         self.eat(TokenType.RBRACE)
         return ForNode(var, condition, change_var, do_branch)
+    
+    def parse_function(self) -> ASTNode:
+        self.eat(TokenType.FUNC)
+        return_type = self.eat(TokenType.INT).value # Simplification: assuming 'int' for now
+        name = self.eat(TokenType.IDENTIFIER).value
+        
+        self.eat(TokenType.LPAREN)
+        params: list[tuple[str, str]] = []
+        if self.current_token().token_type != TokenType.RPAREN:
+            while True:
+                p_type = self.current_token().value
+                self.eat(self.current_token().token_type)
+                p_name = self.eat(TokenType.IDENTIFIER).value
+                params.append((p_type, p_name))
+                if self.current_token().token_type == TokenType.COMMA:
+                    self.eat(TokenType.COMMA)
+                else:
+                    break
+        self.eat(TokenType.RPAREN)
+        self.eat(TokenType.LBRACE)
+        body: list[ASTNode] = []
+        while self.current_token().token_type != TokenType.RBRACE:
+            stmt = self.parse_statement()
+            if stmt: body.append(stmt)
+        self.eat(TokenType.RBRACE)
+        return FunctionDeclNode(name, return_type, params, body)
+
+    def parse_return(self) -> ASTNode:
+        self.eat(TokenType.RETURN)
+        value = self.parse_expression()
+        self.eat(TokenType.SEMICOLON)
+        print(value)
+        return ReturnNode(value)
+
+    def parse_call(self) -> ASTNode:
+        name = self.eat(TokenType.IDENTIFIER).value
+        self.eat(TokenType.LPAREN)
+        args: list[ASTNode] = []
+        if self.current_token().token_type != TokenType.RPAREN:
+            while True:
+                args.append(self.parse_expression())
+                if self.current_token().token_type == TokenType.COMMA:
+                    self.eat(TokenType.COMMA)
+                else:
+                    break
+        self.eat(TokenType.RPAREN)
+        return CallNode(name, args)

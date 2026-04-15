@@ -106,6 +106,37 @@ class ForNode(ASTNode):
         self.condtion = condition
         self.change_var = change_var
         self.do_branch = do_branch
+
+    def __repr__(self):
+        return f"For {self.variable}, {self.condtion}, {self.change_var}, {self.do_branch}"
+
+class FunctionDeclNode(ASTNode):
+    """Represents a function definition."""
+    def __init__(self, name: str, return_type: str, params: list[tuple[str, str]], body: list[ASTNode]):
+        self.name = name
+        self.return_type = return_type
+        self.params = params  # List of (type, name)
+        self.body = body
+
+    def __repr__(self):
+        return f"Func {self.name}, {self.return_type}, {self.params}, {self.body}"
+
+class ReturnNode(ASTNode):
+    """Represents a return statement."""
+    def __init__(self, value_node: ASTNode):
+        self.value_node = value_node
+
+    def __repr__(self):
+        return f"Retrun {self.value_node}"
+
+class CallNode(ASTNode):
+    """Represents a function call (e.g., calculate_sum(1, 2))."""
+    def __init__(self, name: str, args: list[ASTNode]):
+        self.name = name
+        self.args = args
+
+    def __repr__(self):
+        return f"Call {self.name}, {self.args}"
     
 class EOFNode(ASTNode):
     """Sentinel node representing the end of a statement stream or file."""

@@ -52,6 +52,10 @@ class TokenType(Enum):
     WHILE = auto()      # WHILE
     FOR = auto()        # FOR
 
+    # FUNC
+    FUNC = auto()       # FUNC
+    RETURN = auto()     # RETURN
+
     LPAREN = auto()     # (
     RPAREN = auto()     # )
     LBRACE = auto()     # {

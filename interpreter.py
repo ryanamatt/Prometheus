@@ -3,16 +3,24 @@ The execution engine for the Prometheus language.
 It traverses the AST and executes the logic defined in the nodes.
 """
 from typing import Any
-from ast_nodes import ASTNode, NumberNode, StringNode, VarNode, BinOpNode, VarDeclNode, PrintNode, IfNode, WhileNode, ForNode
+from ast_nodes import (
+    ASTNode, NumberNode, StringNode, VarNode, BinOpNode, VarDeclNode, PrintNode, IfNode, WhileNode, 
+    ForNode, FunctionDeclNode, ReturnNode, CallNode
+)
 from prometheus_types import TokenType
+
+class ReturnValue(Exception):
+    def __init__(self, value: Any):
+        self.value = value
 
 class Interpreter:
     """
     Handles the evaluation of AST nodes and maintains the runtime state (variables).
     """
-    def __init__(self) -> None:
+    def __init__(self, global_vars: dict[str, Any] | None = None) -> None:
         """Initializes a new Interpreter with an empty variable memory."""
-        self.variables: dict[str, Any] = {}
+        self.variables: dict[str, Any] = global_vars if global_vars is not None else {}
+        self.functions: dict[str, FunctionDeclNode] = {}
 
     def visit(self, node: ASTNode) -> Any:
         """
@@ -111,6 +119,39 @@ class Interpreter:
                 if count == 1000:
                     raise RecursionError("Recursion for 1000, Likely inf Recursion Error.")
             return
+        
+        if isinstance(node, FunctionDeclNode):
+            self.functions[node.name] = node
+            return None
+
+        elif isinstance(node, CallNode):
+            func_node = self.functions.get(node.name)
+            if not func_node:
+                raise Exception(f"Runtime Error: Function '{node.name}' not defined.")
+            
+            # 1. Evaluate arguments in the CURRENT scope
+            arg_values = [self.visit(arg) for arg in node.args]
+            
+            # 2. Create a NEW interpreter for the LOCAL scope
+            # We pass existing functions so the local scope can call global functions
+            local_interpreter = Interpreter(global_vars={})
+            local_interpreter.functions = self.functions 
+            
+            # 3. Map parameters to argument values
+            for (_, p_name), val in zip(func_node.params, arg_values):
+                local_interpreter.variables[p_name] = val
+            
+            # 4. Execute the body and catch the return value
+            try:
+                for stmt in func_node.body:
+                    local_interpreter.visit(stmt)
+            except ReturnValue as e:
+                return e.value
+            return None
+
+        elif isinstance(node, ReturnNode):
+            value = self.visit(node.value_node)
+            raise ReturnValue(value)
 
     def interpret(self, nodes: list[ASTNode]) -> Any:
         """
