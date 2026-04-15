@@ -26,4 +26,12 @@ int main (int argc, char* argv[])
     std::string source = buffer.str();
 
     std::cout << source << std::endl;
+
+    Lexer lexer(source);
+    std::vector<Token> tokens = lexer.tokenize();
+
+    std::cout << "--- Tokens Found ---" << std::endl;
+    for (const auto& token : tokens) {
+        token.print();
+    }
 }

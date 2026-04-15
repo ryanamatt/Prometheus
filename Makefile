@@ -1,4 +1,10 @@
-CFLAGS=-std=c++17 -Wall -Wextra -Werror
+CXX = g++
+CFLAGS = -std=c++17 -Wall -Wextra -Werror -I include
+SRC = src/main.cc src/lexer.cc
+OBJ = $(SRC:.cc=.o)
 
-all:
-	g++ src/main.cc -o prometheus $(CFLAGS)
+prometheus: $(OBJ)
+	$(CXX) -o $@ $^ $(CFLAGS)
+
+%.o: %.cc
+	$(CXX) -c -o $@ $< $(CFLAGS)
