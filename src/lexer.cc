@@ -28,7 +28,11 @@ std::vector<Token> Lexer::tokenize() {
         while (current_pos < (int)source.size()) {
             char ch = source[current_pos];
 
-            if (std::isspace(ch)) { current_pos++; }
+            if (std::isspace(ch)) { 
+                if (ch == '\n')
+                    current_line++;
+                current_pos++; 
+            }
 
             else if (std::isalpha(ch)) {
                 tokens.push_back(this->make_identifier());
@@ -44,13 +48,9 @@ std::vector<Token> Lexer::tokenize() {
 
             else if (symbol_map.find(ch) != symbol_map.end()) {
 
-                char next_char;
-
-                if (current_pos + 1 > (int)source.size()) {
-                    next_char = '\0';
-                } else {
-                    next_char = source[current_pos + 1];
-                }
+                char next_char = (current_pos + 1 < (int)source.size())
+                             ? source[current_pos + 1]
+                             : '\0';
                 
                 bool matched = false;
                 switch (ch) {
@@ -119,8 +119,9 @@ std::vector<Token> Lexer::tokenize() {
             }
 
             else {
-                std::cout << "Exit Failure from Unknown Char: " << ch << std::endl;
-                exit(EXIT_FAILURE);
+                // The character is not whitespace, alphanumeric, a quote, or a
+                // known symbol — throw instead of calling exit().
+                throw UnknownCharException(ch, current_line);
             }
 
         }
@@ -164,20 +165,59 @@ Token Lexer::make_identifier() {
 
 Token Lexer::make_number() {
     std::string num_str;
-    while (current_pos < (int)source.size() && (std::isdigit(source[current_pos]) || source[current_pos] == '.')) {
+    int dot_count = 0;
+    int start_line = current_line;
+ 
+    while (current_pos < (int)source.size() &&
+           (std::isdigit(source[current_pos]) || source[current_pos] == '.')) {
+ 
+        if (source[current_pos] == '.') {
+            dot_count++;
+            // More than one decimal point is always invalid.
+            if (dot_count > 1) {
+                // Consume the rest of the malformed literal before throwing so
+                // the caller's position is left just past the bad token.
+                while (current_pos < (int)source.size() &&
+                       (std::isdigit(source[current_pos]) || source[current_pos] == '.')) {
+                    num_str += source[current_pos];
+                    current_pos++;
+                }
+                throw InvalidNumberException(num_str, start_line);
+            }
+        }
+ 
         num_str += source[current_pos];
         current_pos++;
     }
+ 
+    // A trailing decimal point with no fractional digits (e.g. "42.") is invalid.
+    if (!num_str.empty() && num_str.back() == '.') {
+        throw InvalidNumberException(num_str, start_line);
+    }
+ 
     return Token(TokenType::NUMBER, num_str);
 }
 
 Token Lexer::make_string() {
+    int start_line = current_line;
+    current_pos++; // consume opening '"'
+ 
     std::string string_val;
-    current_pos++; // skip "
     while (current_pos < (int)source.size() && source[current_pos] != '"') {
+        // Track newlines inside strings so current_line stays accurate.
+        if (source[current_pos] == '\n') {
+            current_line++;
+        }
         string_val += source[current_pos];
         current_pos++;
     }
-    current_pos++; // skip "
+ 
+    // If we walked off the end of the source without finding a closing '"',
+    // the string literal was never terminated.
+    if (current_pos >= (int)source.size()) {
+        throw UnterminatedStringException(start_line);
+    }
+ 
+    current_pos++; // consume closing '"'
     return Token(TokenType::STRING, string_val);
 }

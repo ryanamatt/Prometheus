@@ -27,11 +27,23 @@ int main (int argc, char* argv[])
 
     std::cout << source << std::endl;
 
-    Lexer lexer(source);
-    std::vector<Token> tokens = lexer.tokenize();
+    try {
+        Lexer lexer(source);
+        std::vector<Token> tokens = lexer.tokenize();
 
-    std::cout << "--- Tokens Found ---" << std::endl;
-    for (const auto& token : tokens) {
-        token.print();
+        std::cout << "--- Tokens Found ---" << std::endl;
+        for (const auto& token : tokens) {
+            token.print();
+        }
+    } 
+    catch (const LexerException& e) {
+        // This catches InvalidNumberException, UnknownCharException, etc.
+        std::cerr << "Lexer Error: " << e.what() << std::endl;
+        return 1; // Exit immediately with an error code
+    }
+    catch (const std::exception& e) {
+        // Catch-all for any other standard exceptions
+        std::cerr << "An unexpected error occurred: " << e.what() << std::endl;
+        return 1;
     }
 }
