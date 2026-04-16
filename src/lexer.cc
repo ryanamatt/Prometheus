@@ -7,7 +7,22 @@
 std::vector<Token> Lexer::tokenize() {
     std::unordered_map<char, TokenType> symbol_map = {
             {'=', TokenType::ASSIGN},
-            {';', TokenType::SEMICOLON}
+            {'!', TokenType::NOT},
+            {'+', TokenType::PLUS},
+            {'-', TokenType::MINUS},
+            {'*', TokenType::MULTIPLY},
+            {'/', TokenType::DIVIDE},
+            {'%', TokenType::MODULO},
+            {'>', TokenType::GREATER},
+            {'<', TokenType::LESSER},
+            {'&', TokenType::AND},
+            {'|', TokenType::OR},
+            {'(', TokenType::LPAREN},
+            {')', TokenType::RPAREN},
+            {'{', TokenType::LBRACE},
+            {'}', TokenType::RBRACE},
+            {';', TokenType::SEMICOLON},
+            {',', TokenType::COMMA}
         };
 
         while (current_pos < (int)source.size()) {
@@ -28,8 +43,79 @@ std::vector<Token> Lexer::tokenize() {
             }
 
             else if (symbol_map.find(ch) != symbol_map.end()) {
-                tokens.push_back(Token(symbol_map[ch], std::string(1, ch)));
-                current_pos++;
+
+                char next_char;
+
+                if (current_pos + 1 > (int)source.size()) {
+                    next_char = '\0';
+                } else {
+                    next_char = source[current_pos + 1];
+                }
+                
+                bool matched = false;
+                switch (ch) {
+
+                    case '*':
+                        if (next_char == '*') {
+                            tokens.push_back(Token(TokenType::EXPONENT, "**"));
+                            current_pos += 2;
+                            matched = true;
+                        }
+                        break;
+
+                    case '>':
+                        if (next_char == '=') {
+                            tokens.push_back(Token(TokenType::GREATEREQ, ">="));
+                            current_pos += 2;
+                            matched = true;
+                        }
+                        break;
+
+                    case '<':
+                        if (next_char == '=') {
+                            tokens.push_back(Token(TokenType::LESSEREQ, "<="));
+                            current_pos += 2;
+                            matched = true;
+                        }
+                        break;
+
+                    case '=':
+                        if (next_char == '=') {
+                            tokens.push_back(Token(TokenType::EQUAL, "=="));
+                            current_pos += 2;
+                            matched = true;
+                        }
+                        break;
+                    
+                    case '!':
+                        if (next_char == '=') {
+                            tokens.push_back(Token(TokenType::NOTEQUAL, "!="));
+                            current_pos += 2;
+                            matched = true;
+                        }
+                        break;
+
+                    case '&':
+                        if (next_char == '&') {
+                            tokens.push_back(Token(TokenType::AND, "&&"));
+                            current_pos += 2;
+                            matched = true;
+                        }
+                        break;
+
+                    case '|':
+                        if (next_char == '|') {
+                            tokens.push_back(Token(TokenType::OR, "||"));
+                            current_pos += 2;
+                            matched = true;
+                        }
+                        break;
+                }
+                
+                if (!matched) {
+                    tokens.push_back(Token(symbol_map[ch], std::string(1, ch)));
+                    current_pos++;
+                }
             }
 
             else {
@@ -45,16 +131,34 @@ std::vector<Token> Lexer::tokenize() {
 
 Token Lexer::make_identifier() {
     std::string word;
+    // Keep reading as long as it's alphanumeric or an underscore
     while (current_pos < (int)source.size() && (std::isalnum(source[current_pos]) || source[current_pos] == '_')) {
         word += source[current_pos];
         current_pos++;
     }
 
-    // Keyword Check
-    if (word == "int")    return Token(TokenType::INT, word);
-    if (word == "str")    return Token(TokenType::STR, word);
-    if (word == "double") return Token(TokenType::DOUBLE, word);
+    // Keyword/Type mapping to match the Python logic
+    static const std::unordered_map<std::string, TokenType> keyword_map = {
+        {"int",    TokenType::INT},
+        {"str",    TokenType::STR},
+        {"double", TokenType::DOUBLE},
+        {"if",     TokenType::IF},
+        {"elif",   TokenType::ELIF},
+        {"else",   TokenType::ELSE},
+        {"print",  TokenType::PRINT},
+        {"while",  TokenType::WHILE},
+        {"for",    TokenType::FOR},
+        {"func",   TokenType::FUNC},
+        {"return", TokenType::RETURN}
+    };
 
+    // Check if the word exists in our keyword map
+    auto it = keyword_map.find(word);
+    if (it != keyword_map.end()) {
+        return Token(it->second, word);
+    }
+
+    // If not found in map, it's a standard identifier
     return Token(TokenType::IDENTIFIER, word);
 }
 
