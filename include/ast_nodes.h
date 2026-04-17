@@ -60,6 +60,7 @@ public:
 
     BinOpNode(std::unique_ptr<ASTNode> left, Token op, std::unique_ptr<ASTNode> right)
         : left(std::move(left)), op(op), right(std::move(right)) {}
+
 };
 
 /**

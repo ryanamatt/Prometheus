@@ -5,6 +5,7 @@
 
 #include "lexer.h"
 #include "parser.h"
+#include "interpreter.h"
 
 int main (int argc, char* argv[])
 {
@@ -13,7 +14,7 @@ int main (int argc, char* argv[])
         return 1;
     }
     std::string filename = argv[1];
-    std::cout << filename << std::endl;
+    // std::cout << filename << std::endl;
 
     std::ifstream file(filename);
     if (!file.is_open()) {
@@ -25,21 +26,24 @@ int main (int argc, char* argv[])
     buffer << file.rdbuf();
     std::string source = buffer.str();
 
-    std::cout << source << std::endl;
+    // std::cout << source << std::endl;
 
     try {
         Lexer lexer(source);
         std::vector<Token> tokens = lexer.tokenize();
 
-        std::cout << "--- Tokens Found ---" << std::endl;
-        for (const auto& token : tokens) {
-            token.print();
-        }
+        // std::cout << "--- Tokens Found ---" << std::endl;
+        // for (const auto& token : tokens) {
+        //     token.print();
+        // }
 
         Parser parser(tokens);
         std::vector<std::unique_ptr<ASTNode>> nodes = parser.parse();
 
-        std::cout << "--- Parsed " << nodes.size() << " statement(s) ---" << std::endl;
+        // std::cout << "--- Parsed " << nodes.size() << " statement(s) ---" << std::endl;
+
+        Interpreter interpreter(std::move(nodes));
+        std::any any = interpreter.interpret();
     } 
     catch (const LexerException& e) {
         std::cerr << "Lexer Error: " << e.what() << std::endl;

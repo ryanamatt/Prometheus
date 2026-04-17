@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <string>
 #include <sstream>
+#include <any>
 
 /**
  * @brief Base class for all Prometheus lexer exceptions.
@@ -130,6 +131,14 @@ public:
 class ParseException : public std::runtime_error {
 public:
     explicit ParseException(const std::string& msg) : std::runtime_error(msg) {}
+};
+
+class ReturnException : public std::exception {
+public:
+    std::any value;
+    explicit ReturnException(std::any val) : value(std::move(val)) {}
+    // Override what() just to satisfy the interface, though we won't use it for the value
+    const char* what() const noexcept override { return "Return Statement"; }
 };
 
 #endif // EXCEPTIONS_H
