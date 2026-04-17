@@ -3,6 +3,9 @@ int y = 20;
 double z = 0.0;
 str s = "Hello World";
 
+print(s);
+
+# This is a comment.
 func int add(int a, int b) {
     return a + b;
 }
@@ -12,4 +15,28 @@ func int sub(int a, int b) {
     return a - b;
 }
 
-print(s, add(x, y), sub(x, y));
+if (add(x, y) > 25) {
+    print("The Fire grows near.");
+}
+
+elif (add(x, y) > 15) {
+    print("The fire is growing, but small.");
+}
+
+else {
+    print("FAIL");
+}
+
+if (sub(x, y) < 0) {
+    print("The light of the firm dims,", "as the night grows cold.");
+}
+
+for (int i = 0; i < 5; i++;) {
+    print(i, s);
+}
+print("-");
+int j = 5;
+while (j > 0) {
+    print(j);
+    j = j - 1;
+}

@@ -38,6 +38,8 @@ enum class TokenType
     MODULO,         // %
     EXPONENT,       // **
 
+    INCREMENT,       // ++
+
     // Comparison Operators
     EQUAL,          // ==
     NOTEQUAL,       // !=
@@ -98,6 +100,8 @@ inline std::string to_string(TokenType t) {
         case TokenType::DIVIDE:     return "DIVIDE";
         case TokenType::MODULO:     return "MODULO";
         case TokenType::EXPONENT:   return "EXPONENT";
+
+        case TokenType::INCREMENT:   return "INCREMENT";
 
         // Comparison Operators
         case TokenType::EQUAL:      return "EQUAL";

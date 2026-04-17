@@ -63,7 +63,14 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
     }
 
     if (tt == TokenType::IDENTIFIER) {
-        if (peek().get_token() == TokenType::LPAREN) {
+        if (peek().get_token() == TokenType::INCREMENT) {
+            Token id = eat(TokenType::IDENTIFIER);
+            eat(TokenType::INCREMENT);
+            eat(TokenType::SEMICOLON);
+            return std::make_unique<IncrementNode>(id.get_value());
+        }
+
+        else if (peek().get_token() == TokenType::LPAREN) {
             return parse_call();
         }
         return parse_identifier();
@@ -333,7 +340,8 @@ std::unique_ptr<ASTNode> Parser::parse_add_sub() {
         if (tt == TokenType::PLUS || tt == TokenType::MINUS) {
             Token op = eat(tt);
             node = std::make_unique<BinOpNode>(std::move(node), op, parse_factor());
-        } else {
+        } 
+        else {
             break;
         }
     }

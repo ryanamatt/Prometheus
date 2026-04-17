@@ -131,6 +131,22 @@ std::any Interpreter::visit(ASTNode* node) {
         return value;
     }
 
+    else if (IncrementNode* n = dynamic_cast<IncrementNode*>(node)) {
+        auto it = variables.find(n->name);
+        if (it == variables.end()) {
+            throw std::runtime_error("Runtime Error: Undefined variable '" + n->name + "'");
+        }
+
+        double current_val = get_double(it->second);
+        double new_val = current_val + 1.0;
+        if (it->second.type() == typeid(int)) {
+            variables[n->name] = static_cast<int>(new_val);
+        } else {
+            variables[n->name] = new_val;
+        }
+        return variables[n->name];
+    }
+
     else if (PrintNode* n = dynamic_cast<PrintNode*>(node)) {
         std::vector<std::string> results;
         for (const auto& expr : n->expressions) {
@@ -178,8 +194,8 @@ std::any Interpreter::visit(ASTNode* node) {
         while (get_bool(visit(n->condition.get()))) {
             for (auto& stmt : n->do_branch)
                 visit(stmt.get());
-            return 0;
         }
+        return 0;
     }
 
     else if (ForNode* n = dynamic_cast<ForNode*>(node)) {

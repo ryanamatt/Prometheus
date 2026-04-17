@@ -177,4 +177,13 @@ public:
  */
 class EOFNode : public ASTNode {};
 
+/**
+ * @brief Increments a variable.
+ */
+class IncrementNode : public ASTNode {
+public:
+    std::string name;
+    IncrementNode(std::string name) : name(name) {}
+};
+
 #endif // AST_NODES_H
