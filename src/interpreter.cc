@@ -35,6 +35,7 @@ static bool get_bool(const PrometheusValue& value) {
     if (auto* b = std::get_if<bool>(&value))   return *b;
     if (auto* i = std::get_if<int>(&value))    return *i != 0;
     if (auto* d = std::get_if<double>(&value)) return *d != 0.0;
+    if (auto* s = std::get_if<std::string>(&value)) return !s->empty() && *s != "false";
     return false;
 }
 
@@ -47,7 +48,7 @@ static std::string value_to_string(const PrometheusValue& value) {
         return s;
     }
     if (auto* s = std::get_if<std::string>(&value)) return *s;
-    if (auto* b = std::get_if<bool>(&value))        return *b ? "True" : "False";
+    if (auto* b = std::get_if<bool>(&value))        return *b ? "true" : "false";
     return "None"; // std::monostate
 }
 
@@ -74,6 +75,10 @@ PrometheusValue Interpreter::visit(ASTNode* node) {
 
     else if (StringNode* n = dynamic_cast<StringNode*>(node)) {
         return n->value;
+    }
+
+    else if (BooleanNode* n = dynamic_cast<BooleanNode*>(node)) {
+        return get_bool(n->value);
     }
 
     else if (BinOpNode* n = dynamic_cast<BinOpNode*>(node)) {
@@ -239,6 +244,11 @@ PrometheusValue Interpreter::visit(ASTNode* node) {
         if (n->name == "str") {
             PrometheusValue val = visit(n->args[0].get());
             return std::to_string(get_double(val));
+        }
+
+        if (n->name == "bool") {
+            PrometheusValue val = visit(n->args[0].get());
+            return get_bool(val);
         }
 
         if (functions.find(n->name) == functions.end()) {

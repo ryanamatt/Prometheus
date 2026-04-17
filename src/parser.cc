@@ -58,7 +58,7 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
     Token token = current_token();
     TokenType tt = token.get_token();
 
-    if (tt == TokenType::INT || tt == TokenType::STR || tt == TokenType::DOUBLE) {
+    if (tt == TokenType::INT || tt == TokenType::STR || tt == TokenType::DOUBLE || tt == TokenType::BOOL) {
         return parse_declaration();
     }
 
@@ -424,6 +424,10 @@ std::unique_ptr<ASTNode> Parser::parse_term() {
             // We treat the keyword as an identifier so parse_call can handle it
             return parse_call_special(token.get_value()); 
         }
+    }
+
+    if (tt == TokenType::BOOL) {
+        return std::make_unique<BooleanNode>(eat(TokenType::BOOL));
     }
 
     if (tt == TokenType::INPUT) {

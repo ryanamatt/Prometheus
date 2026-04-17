@@ -26,6 +26,7 @@ enum class TokenType
     INT,
     STR,
     DOUBLE,
+    BOOL,
 
     // Identifiers and Literals
     IDENTIFIER,
@@ -91,6 +92,7 @@ inline std::string to_string(TokenType t) {
         case TokenType::INT:        return "INT";
         case TokenType::STR:        return "STR";
         case TokenType::DOUBLE:     return "DOUBLE";
+        case TokenType::BOOL:       return "BOOL";
 
         // Identifiers and Literals
         case TokenType::IDENTIFIER: return "IDENTIFIER";

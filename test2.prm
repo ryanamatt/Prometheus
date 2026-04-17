@@ -1,7 +1,11 @@
-int x = 20;
-str s = input("Enter String: ");
+bool is_fire = true;
 
-int s_int = int(s);
+print(is_fire);
 
-print(s);
-print(s_int);
+if (is_fire) {
+    print("IS ON FIRE");
+}
+
+else {
+    print("NOT ON FIRE");
+}

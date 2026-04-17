@@ -166,6 +166,7 @@ Token Lexer::make_identifier() {
         {"int",    TokenType::INT},
         {"str",    TokenType::STR},
         {"double", TokenType::DOUBLE},
+        {"bool",   TokenType::BOOL},
         {"if",     TokenType::IF},
         {"elif",   TokenType::ELIF},
         {"else",   TokenType::ELSE},
@@ -181,6 +182,10 @@ Token Lexer::make_identifier() {
     auto it = keyword_map.find(word);
     if (it != keyword_map.end()) {
         return Token(it->second, word);
+    }
+
+    if (word == "true" || word == "false") {
+        return Token(TokenType::BOOL, word);
     }
 
     // If not found in map, it's a standard identifier

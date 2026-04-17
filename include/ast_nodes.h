@@ -39,6 +39,17 @@ public:
 };
 
 /**
+ * @brief Represents a boolean literal in the AST.
+ */
+class BooleanNode : public ASTNode {
+public:
+    Token token;
+    std::string value;
+
+    BooleanNode(Token token) : token(token), value(token.get_value()) {}
+};
+
+/**
  * @brief Represents a variable identifier usage
  */
 class VarNode : public ASTNode {
