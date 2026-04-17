@@ -29,7 +29,16 @@ std::string get_string(std::any value) {
 }
 
 bool get_bool(std::any value) {
-    return std::any_cast<bool>(value);
+    if (value.type() == typeid(bool)) {
+        return std::any_cast<bool>(value);
+    }
+    if (value.type() == typeid(int)) {
+        return std::any_cast<int>(value) != 0;
+    }
+    if (value.type() == typeid(double)) {
+        return std::any_cast<double>(value) != 0.0;
+    }
+    return false; // Or throw a specific runtime error
 }
 
 std::string any_to_string(const std::any& value) {
@@ -96,10 +105,16 @@ std::any Interpreter::visit(ASTNode* node) {
             // Comparison Operators
             
             case TokenType::EQUAL:
-                return (get_double(left_val) == get_double(right_val)) || (get_string(left_val) == get_string(right_val));
+                if (left_val.type() == typeid(std::string) && right_val.type() == typeid(std::string)) {
+                    return get_string(left_val) == get_string(right_val);
+                }
+                return get_double(left_val) == get_double(right_val);
 
             case TokenType::NOTEQUAL:
-                return (get_double(left_val) != get_double(right_val)) || (get_string(left_val) != get_string(right_val));
+                if (left_val.type() == typeid(std::string) && right_val.type() == typeid(std::string)) {
+                    return get_string(left_val) != get_string(right_val);
+                }
+                return get_double(left_val) != get_double(right_val);
 
             case TokenType::GREATER:
                 return get_double(left_val) > get_double(right_val);
@@ -117,7 +132,7 @@ std::any Interpreter::visit(ASTNode* node) {
                 return get_bool(left_val) && get_bool(right_val);
 
             case TokenType::OR:
-                return get_bool(left_val) && get_bool(right_val);
+                return get_bool(left_val) || get_bool(right_val);
 
             default:
                 throw std::runtime_error("Runtime Error: Operator not supported in binary expression");

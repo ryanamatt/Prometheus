@@ -6,7 +6,7 @@
 # Comparision Operators
 # ==, !=, >, <, >=, <=, &&, ||
 # Keywords,
-# print, return, func, if, else, elif, for, while
+# print, input, return, func, if, else, elif, for, while
 
 int x = 10;
 int y = 20;
