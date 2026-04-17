@@ -50,6 +50,7 @@ std::vector<Token> Lexer::tokenize() {
             else if (ch == '#') {
                 while (source[current_pos] != '\n')
                     current_pos++;
+                current_line++;
             }
 
             else if (symbol_map.find(ch) != symbol_map.end()) {
