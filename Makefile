@@ -8,3 +8,6 @@ prometheus: $(OBJ)
 
 %.o: %.cc
 	$(CXX) -c -o $@ $< $(CFLAGS)
+
+clean:
+	rm -f src/*.o *.exe
