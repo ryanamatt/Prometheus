@@ -15,7 +15,9 @@ int main (int argc, char* argv[])
         return 1;
     }
     std::string filename = argv[1];
-    // std::cout << filename << std::endl;
+    #ifdef DEBUG
+    std::cout << "Filename: " << filename << std::endl;
+    #endif
 
     std::ifstream file(filename);
     if (!file.is_open()) {
@@ -27,24 +29,32 @@ int main (int argc, char* argv[])
     buffer << file.rdbuf();
     std::string source = buffer.str();
 
-    // std::cout << source << std::endl;
+    #ifdef DEBUG
+    std::cout << "Source:\n" << source << std::endl;
+    #endif
 
     try {
         Lexer lexer(source);
         std::vector<Token> tokens = lexer.tokenize();
 
+        #ifdef DEBUG
         std::cout << "--- Tokens Found ---" << std::endl;
         for (const auto& token : tokens) {
             token.print();
         }
+        #endif
 
         Parser parser(tokens);
         std::vector<std::unique_ptr<ASTNode>> nodes = parser.parse();
 
+        #ifdef DEBUG
         std::cout << "--- Parsed " << nodes.size() << " statement(s) ---" << std::endl;
+        #endif
 
         Interpreter interpreter(std::move(nodes));
         std::unordered_map<std::string, PrometheusValue> variables = interpreter.interpret();
+
+        #ifdef DEBUG
         std::cout << "--- Final Memory State ---" << std::endl;
         for (auto const& [name, val] : variables) {
             std::cout << name << " = ";
@@ -58,6 +68,7 @@ int main (int argc, char* argv[])
             }, val);
             std::cout << std::endl;
         }
+        #endif
 
 
     } 
