@@ -118,4 +118,18 @@ public:
         : LexerException("Unterminated comment: missing closing marker", line) {}
 };
 
+// ---------------------------------------------------------------------------
+
+/**
+ * @brief Thrown by the Parser when a syntactic rule is violated.
+ *
+ * @code
+ *   throw ParseException("Expected SEMICOLON, got RBRACE");
+ * @endcode
+ */
+class ParseException : public std::runtime_error {
+public:
+    explicit ParseException(const std::string& msg) : std::runtime_error(msg) {}
+};
+
 #endif // EXCEPTIONS_H

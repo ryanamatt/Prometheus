@@ -1,118 +1,134 @@
-#ifndef PARSE_H
-#define PARSE_H
+#ifndef PARSER_H
+#define PARSER_H
 
 #include "ast_nodes.h"
+#include "exceptions.h"
 
+/**
+ * @brief Implements a recursive-descent parser that converts a token stream
+ *        into an Abstract Syntax Tree (AST).
+ */
 class Parser {
 private:
     std::vector<Token> tokens;
     int pos;
 
 public:
-    Parser(std::vector<Token> tokens) : tokens(tokens), pos(0) {}
+    explicit Parser(std::vector<Token> tokens) : tokens(std::move(tokens)), pos(0) {}
 
     /**
-     * @brief Entry point for parsing the entire token stream into a list of statements.
+     * @brief Entry point – consumes all tokens and returns a list of top-level
+     *        statement nodes.
      */
-    std::vector<ASTNode> parse();
+    std::vector<std::unique_ptr<ASTNode>> parse();
 
 private:
 
-    /**
-     * @brief Returns the token currently pointed to by the parser.
-     */
+    // -----------------------------------------------------------------------
+    // Helpers
+    // -----------------------------------------------------------------------
+
+    /** Returns the token currently pointed to (or a synthetic EOF token). */
     Token current_token();
 
-    /**
-     * @brief Looks at the next token without consuming it.
+    /** 
+     * @brief Returns the token one ahead of the current position without consuming it. 
      */
     Token peek();
 
     /**
-     * @brief Validates the current token type and moves the pointer forward.
-        Raises a Syntax Error if the type does not match.
+     * @brief Validates that the current token matches `expected_type`, advances
+     *        the position, and returns the consumed token.
+     * @throws ParseException on a type mismatch.
      */
-    ASTNode eat(TokenType token_type);
+    Token eat(TokenType expected_type);
+
+    // -----------------------------------------------------------------------
+    // Statements
+    // -----------------------------------------------------------------------
+
+    /** 
+     * @brief Dispatches to the appropriate method based on the current token. 
+     */
+    std::unique_ptr<ASTNode> parse_statement();
+
+    /** 
+     * @brief Parses a typed variable declaration: `int x = <expr>;` 
+     */
+    std::unique_ptr<ASTNode> parse_declaration();
+
+    /** 
+     * @brief Parses a bare identifier assignment: `x = <expr>;`
+     */
+    std::unique_ptr<ASTNode> parse_identifier();
+
+    /** 
+     * @brief Parses a `print(<expr>, ...);` statement.
+     */
+    std::unique_ptr<PrintNode> parse_print();
+
+    /** 
+     * @brief Parses an `if (...) { } elif (...) { } else { }` construct.
+     */
+    std::unique_ptr<IfNode> parse_if();
+
+    /** 
+     * @brief Parses a `while (...) { }` loop.
+     */
+    std::unique_ptr<WhileNode> parse_while();
+
+    /** 
+     * @brief Parses a `for (<decl> <cond>; <stmt>) { }` loop. 
+     */
+    std::unique_ptr<ForNode> parse_for();
+
+    /** @brief Parses a `func <type> <name>(...) { }` function definition. */
+    std::unique_ptr<FunctionDeclNode> parse_func();
+
+    /** 
+     * @brief Parses a `return <expr>;` statement.
+     */
+    std::unique_ptr<ReturnNode> parse_return();
+
+    /** 
+     * @brief Parses a `<name>(arg, ...)` function call expression. 
+     */
+    std::unique_ptr<CallNode> parse_call();
+
+    // -----------------------------------------------------------------------
+    // Expressions  (lowest → highest precedence)
+    // -----------------------------------------------------------------------
+
+    /** 
+     * @brief Comparison / logical operators: ==, !=, >, >=, <, <=, &&, ||
+     */
+    std::unique_ptr<ASTNode> parse_expression();
+
+    /** 
+     * @brief Additive operators: +, - *
+     */
+    std::unique_ptr<ASTNode> parse_add_sub();
+
+    /** 
+     * @brief Multiplicative operators: *, /, % 
+     * */
+    std::unique_ptr<ASTNode> parse_factor();
+
+    /** 
+     * @brief Exponentiation operator: ** 
+     * 
+    */
+    std::unique_ptr<ASTNode> parse_exponent();
+
+    /** 
+     * @brief Grouped sub-expression inside parentheses: `( <expr> )` 
+     * */
+    std::unique_ptr<ASTNode> parse_parentheses();
 
     /**
-     * @brief Determines the type of statement and routes to the specific parsing method.
-     */
-    ASTNode parse_statement();
-
-    /**
-     * @brief Parses variable declarations (e.g., 'int x = 10;').
-     */
-    ASTNode parse_declaration();
-
-    /**
-     * @brief Parses an Identifier of x = x + 1
-     */
-    ASTNode parse_identifier();
-
-    /**
-     * @brief Parses the lowest level of expression precedence (comparisons).
-     */
-    ASTNode parse_expression();
-
-    /**
-     * @brief Parses additive operations (+, -).
-     */
-    ASTNode parse_add_sub();
-
-    /**
-     * @brief Parses multiplicative operations (*, /, %).
-     */
-    ASTNode parse_factor();
-
-    /**
-     * @brief Parses exponentiation operations (**).
-     */
-    ASTNode parse_exponenet();
-
-    /**
-     * @brief Handles grouped expressions inside parentheses.
-     */
-    ASTNode parse_parantheses();
-
-    /**
-     * @brief Parses the highest priority elements (numbers, strings, identifiers).
-     */
-    ASTNode parse_term();
-
-    /**
-     * @brief Parses 'print' statements and their arguments.
-     */
-    PrintNode parse_print();
-
-    /**
-     * @brief Parses 'if' statements, including optional 'else' blocks.
-     */
-    IfNode parse_if();
-
-    /**
-     * @brief Parses a While Loop
-     */
-    WhileNode parse_while();
-
-    /**
-     * @brief Parses a For Loop.
-     */
-    ForNode parse_for();
-
-    /**
-     * @brief Parses a function
-     */
-    FunctionDeclNode parse_func();
-
-    /**
-     * @brief Parses the return keyword
-     */
-    ReturnNode parse_return();
-
-    /**
-     * @brief Parses the call to a function
-     */
-    CallNode parse_call();
+     * @brief Atomic terms: number literals, string literals, identifiers, call sites. 
+     * */
+    std::unique_ptr<ASTNode> parse_term();
 };
 
 #endif // PARSER_H

@@ -1,5 +1,7 @@
+#ifndef PROMETHEUS_TYPES_H
+#define PROMETHEUS_TYPES_H
 
-
+#include <iostream>
 #include <string>
 
 /**
@@ -147,3 +149,5 @@ public:
         std::cout << "Token(" << to_string(token) << ", '" << value << "')" << std::endl;
     }
 };
+
+#endif // PROMETHEUS_TYPES_H

@@ -1,10 +1,10 @@
-
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <string>
 
 #include "lexer.h"
+#include "parser.h"
 
 int main (int argc, char* argv[])
 {
@@ -35,14 +35,21 @@ int main (int argc, char* argv[])
         for (const auto& token : tokens) {
             token.print();
         }
+
+        Parser parser(tokens);
+        std::vector<std::unique_ptr<ASTNode>> nodes = parser.parse();
+
+        std::cout << "--- Parsed " << nodes.size() << " statement(s) ---" << std::endl;
     } 
     catch (const LexerException& e) {
-        // This catches InvalidNumberException, UnknownCharException, etc.
         std::cerr << "Lexer Error: " << e.what() << std::endl;
-        return 1; // Exit immediately with an error code
+        return 1;
+    }
+    catch (const ParseException& e) {
+        std::cerr << "Parse Error: " << e.what() << std::endl;
+        return 1;
     }
     catch (const std::exception& e) {
-        // Catch-all for any other standard exceptions
         std::cerr << "An unexpected error occurred: " << e.what() << std::endl;
         return 1;
     }
