@@ -1,62 +1,61 @@
 #include <cmath>
-#include <stdbool.h>
 #include <sstream>
-#include <any>
 #include "exceptions.h"
 #include "interpreter.h"
 
-std::unordered_map<std::string, std::any> Interpreter::interpret() {
+std::unordered_map<std::string, PrometheusValue> Interpreter::interpret() {
     for (auto& node : *nodes) {
         visit(node.get());
     }
     return variables;
 }
 
-double get_double(std::any value) {
-    if (value.type() == typeid(int)) return static_cast<double>(std::any_cast<int>(value));
-    if (value.type() == typeid(double)) return std::any_cast<double>(value);
+// ============================================================================
+// Helpers — extract typed values from a PrometheusValue
+// ============================================================================
+
+static double get_double(const PrometheusValue& value) {
+    if (auto* i = std::get_if<int>(&value))    return static_cast<double>(*i);
+    if (auto* d = std::get_if<double>(&value)) return *d;
     throw std::runtime_error("Runtime Error: Numeric value expected.");
 }
 
-int get_int(std::any value) {
-    if (value.type() == typeid(int)) return std::any_cast<int>(value);
-    if (value.type() == typeid(double)) return static_cast<int>(std::any_cast<double>(value));
+static int get_int(const PrometheusValue& value) {
+    if (auto* i = std::get_if<int>(&value))    return *i;
+    if (auto* d = std::get_if<double>(&value)) return static_cast<int>(*d);
     throw std::runtime_error("Runtime Error: Numeric value expected.");
 }
 
-std::string get_string(std::any value) {
-    return std::any_cast<std::string>(value);
+static const std::string& get_string(const PrometheusValue& value) {
+    if (auto* s = std::get_if<std::string>(&value)) return *s;
+    throw std::runtime_error("Runtime Error: String value expected.");
 }
 
-bool get_bool(std::any value) {
-    if (value.type() == typeid(bool)) {
-        return std::any_cast<bool>(value);
-    }
-    if (value.type() == typeid(int)) {
-        return std::any_cast<int>(value) != 0;
-    }
-    if (value.type() == typeid(double)) {
-        return std::any_cast<double>(value) != 0.0;
-    }
-    return false; // Or throw a specific runtime error
+static bool get_bool(const PrometheusValue& value) {
+    if (auto* b = std::get_if<bool>(&value))   return *b;
+    if (auto* i = std::get_if<int>(&value))    return *i != 0;
+    if (auto* d = std::get_if<double>(&value)) return *d != 0.0;
+    return false;
 }
 
-std::string any_to_string(const std::any& value) {
-    if (value.type() == typeid(int)) return std::to_string(std::any_cast<int>(value));
-    if (value.type() == typeid(double)) {
-        std::string s = std::to_string(std::any_cast<double>(value));
-        // Optional: Remove trailing zeros for a cleaner look like Python
+static std::string value_to_string(const PrometheusValue& value) {
+    if (auto* i = std::get_if<int>(&value))    return std::to_string(*i);
+    if (auto* d = std::get_if<double>(&value)) {
+        std::string s = std::to_string(*d);
         s.erase(s.find_last_not_of('0') + 1, std::string::npos);
         if (s.back() == '.') s.pop_back();
         return s;
     }
-    if (value.type() == typeid(std::string)) return std::any_cast<std::string>(value);
-    if (value.type() == typeid(bool)) return std::any_cast<bool>(value) ? "True" : "False";
-    
-    return "None";
+    if (auto* s = std::get_if<std::string>(&value)) return *s;
+    if (auto* b = std::get_if<bool>(&value))        return *b ? "True" : "False";
+    return "None"; // std::monostate
 }
 
-std::any Interpreter::visit(ASTNode* node) {
+// ============================================================================
+// visit
+// ============================================================================
+
+PrometheusValue Interpreter::visit(ASTNode* node) {
 
     if (NumberNode* n = dynamic_cast<NumberNode*>(node)) {
         if (n->value.find('.') != std::string::npos) {
@@ -68,22 +67,22 @@ std::any Interpreter::visit(ASTNode* node) {
     else if (VarNode* n = dynamic_cast<VarNode*>(node)) {
         auto it = variables.find(n->value);
         if (it != variables.end()) {
-            return variables[n->value];
+            return it->second;
         }
+        return std::monostate{};
     }
 
-    else if (StringNode* n = dynamic_cast<StringNode*>(node))  {
+    else if (StringNode* n = dynamic_cast<StringNode*>(node)) {
         return n->value;
     }
 
     else if (BinOpNode* n = dynamic_cast<BinOpNode*>(node)) {
-        std::any left_val = visit(n->left.get());
-        std::any right_val = visit(n->right.get());
+        PrometheusValue left_val  = visit(n->left.get());
+        PrometheusValue right_val = visit(n->right.get());
 
         switch (n->op.get_token()) {
 
-            // Math Operators
-
+            // Arithmetic
             case TokenType::PLUS:
                 return get_double(left_val) + get_double(right_val);
 
@@ -102,37 +101,29 @@ std::any Interpreter::visit(ASTNode* node) {
             case TokenType::EXPONENT:
                 return std::pow(get_double(left_val), get_double(right_val));
 
-            // Comparison Operators
-            
+            // Comparison
             case TokenType::EQUAL:
-                if (left_val.type() == typeid(std::string) && right_val.type() == typeid(std::string)) {
+                if (std::holds_alternative<std::string>(left_val) &&
+                    std::holds_alternative<std::string>(right_val)) {
                     return get_string(left_val) == get_string(right_val);
                 }
                 return get_double(left_val) == get_double(right_val);
 
             case TokenType::NOTEQUAL:
-                if (left_val.type() == typeid(std::string) && right_val.type() == typeid(std::string)) {
+                if (std::holds_alternative<std::string>(left_val) &&
+                    std::holds_alternative<std::string>(right_val)) {
                     return get_string(left_val) != get_string(right_val);
                 }
                 return get_double(left_val) != get_double(right_val);
 
-            case TokenType::GREATER:
-                return get_double(left_val) > get_double(right_val);
+            case TokenType::GREATER:    return get_double(left_val) >  get_double(right_val);
+            case TokenType::LESSER:     return get_double(left_val) <  get_double(right_val);
+            case TokenType::GREATEREQ:  return get_double(left_val) >= get_double(right_val);
+            case TokenType::LESSEREQ:   return get_double(left_val) <= get_double(right_val);
 
-            case TokenType::LESSER:
-                return get_double(left_val) < get_double(right_val);
-
-            case TokenType::GREATEREQ:
-                return get_double(left_val) >= get_double(right_val);
-
-            case TokenType::LESSEREQ:
-                return get_double(left_val) <= get_double(right_val);
-
-            case TokenType::AND:
-                return get_bool(left_val) && get_bool(right_val);
-
-            case TokenType::OR:
-                return get_bool(left_val) || get_bool(right_val);
+            // Logical
+            case TokenType::AND: return get_bool(left_val) && get_bool(right_val);
+            case TokenType::OR:  return get_bool(left_val) || get_bool(right_val);
 
             default:
                 throw std::runtime_error("Runtime Error: Operator not supported in binary expression");
@@ -140,7 +131,7 @@ std::any Interpreter::visit(ASTNode* node) {
     }
 
     else if (VarDeclNode* n = dynamic_cast<VarDeclNode*>(node)) {
-        std::any value = visit(n->value_node.get());
+        PrometheusValue value = visit(n->value_node.get());
         variables[n->name] = value;
         return value;
     }
@@ -153,7 +144,9 @@ std::any Interpreter::visit(ASTNode* node) {
 
         double current_val = get_double(it->second);
         double new_val = current_val + n->inc_val;
-        if (it->second.type() == typeid(int)) {
+
+        // Preserve the original type (int stays int, double stays double)
+        if (std::holds_alternative<int>(it->second)) {
             variables[n->name] = static_cast<int>(new_val);
         } else {
             variables[n->name] = new_val;
@@ -164,16 +157,13 @@ std::any Interpreter::visit(ASTNode* node) {
     else if (PrintNode* n = dynamic_cast<PrintNode*>(node)) {
         std::vector<std::string> results;
         for (const auto& expr : n->expressions) {
-            std::any val = visit(expr.get());
-            results.push_back(any_to_string(val)); 
+            results.push_back(value_to_string(visit(expr.get())));
         }
 
         std::stringstream ss;
         for (size_t i = 0; i < results.size(); ++i) {
             ss << results[i];
-            if (i < (results.size() - 1)) {
-                ss << " ";
-            }
+            if (i < results.size() - 1) ss << " ";
         }
 
         std::string output = ss.str();
@@ -189,26 +179,23 @@ std::any Interpreter::visit(ASTNode* node) {
     }
 
     else if (IfNode* n = dynamic_cast<IfNode*>(node)) {
-        // Check IF
-        bool condition_met = get_bool(visit(n->condition.get()));
-        if (condition_met) {
+        if (get_bool(visit(n->condition.get()))) {
             for (auto& stmt : n->then_branch)
                 visit(stmt.get());
-            return 0;
+            return std::monostate{};
         }
 
-        // Check ELIF(s)
         for (auto& [condition, branch] : n->elif_branches) {
             if (get_bool(visit(condition.get()))) {
                 for (auto& stmt : branch)
                     visit(stmt.get());
-                return 0;
+                return std::monostate{};
             }
         }
 
-        // Check ELSE
         for (auto& stmt : n->else_branch)
             visit(stmt.get());
+        return std::monostate{};
     }
 
     else if (WhileNode* n = dynamic_cast<WhileNode*>(node)) {
@@ -216,7 +203,7 @@ std::any Interpreter::visit(ASTNode* node) {
             for (auto& stmt : n->do_branch)
                 visit(stmt.get());
         }
-        return 0;
+        return std::monostate{};
     }
 
     else if (ForNode* n = dynamic_cast<ForNode*>(node)) {
@@ -226,43 +213,41 @@ std::any Interpreter::visit(ASTNode* node) {
                 visit(stmt.get());
             visit(n->change_var.get());
         }
-        return 0;
+        return std::monostate{};
     }
 
     else if (FunctionDeclNode* n = dynamic_cast<FunctionDeclNode*>(node)) {
         functions[n->name] = n;
-        return 0;
+        return std::monostate{};
     }
 
     else if (ReturnNode* n = dynamic_cast<ReturnNode*>(node)) {
-        std::any value = visit(n->value_node.get());
+        PrometheusValue value = visit(n->value_node.get());
         throw ReturnException{value};
     }
 
     else if (CallNode* n = dynamic_cast<CallNode*>(node)) {
-        // Handle Built-in Conversions first
+        // Built-in type conversions
         if (n->name == "int") {
-            std::any val = visit(n->args[0].get());
-            return std::stoi(get_string(val)); 
+            PrometheusValue val = visit(n->args[0].get());
+            return std::stoi(get_string(val));
         }
-
-        else if (n->name == "double") {
-            std::any val = visit(n->args[0].get());
+        if (n->name == "double") {
+            PrometheusValue val = visit(n->args[0].get());
             return std::stod(get_string(val));
         }
-
-        else if  (n->name == "str") {
-            std::any val = visit(n->args[0].get());
+        if (n->name == "str") {
+            PrometheusValue val = visit(n->args[0].get());
             return std::to_string(get_double(val));
         }
-
 
         if (functions.find(n->name) == functions.end()) {
             throw std::runtime_error("Runtime Error: Function '" + n->name + "' not defined.");
         }
 
         FunctionDeclNode* func_node = functions[n->name];
-        std::vector<std::any> arg_values;
+
+        std::vector<PrometheusValue> arg_values;
         for (auto& arg : n->args)
             arg_values.push_back(visit(arg.get()));
 
@@ -270,8 +255,7 @@ std::any Interpreter::visit(ASTNode* node) {
         local_interpreter.functions = functions;
 
         for (size_t i = 0; i < arg_values.size() && i < func_node->params.size(); i++) {
-            auto& p_name = func_node->params[i].second;
-            local_interpreter.variables[p_name] = arg_values[i];
+            local_interpreter.variables[func_node->params[i].second] = arg_values[i];
         }
 
         try {
@@ -279,11 +263,9 @@ std::any Interpreter::visit(ASTNode* node) {
                 local_interpreter.visit(stmt.get());
             }
         } catch (const ReturnException& e) {
-            return e.value; // Return the caught value
+            return e.value;
         }
-
-
     }
 
-    return {};
+    return std::monostate{};
 }

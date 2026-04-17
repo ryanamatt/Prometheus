@@ -3,7 +3,19 @@
 
 #include <iostream>
 #include <string>
+#include <variant>
 
+/**
+ * @brief The canonical runtime value type used throughout the interpreter.
+ *
+ * Alternatives:
+ *   int          – integer literals and integer arithmetic results
+ *   double       – floating-point literals and float arithmetic results
+ *   bool         – results of comparison / logical operators
+ *   std::string  – string literals and string variables
+ *   std::monostate – represents the absence of a value ("None" / void return)
+ */
+using PrometheusValue = std::variant<int, double, bool, std::string, std::monostate>;
 /**
  * @brief Enumeration of all valid token types supported by the 
     Prometheus Lexer and Parser.
@@ -39,7 +51,7 @@ enum class TokenType
     MODULO,         // %
     EXPONENT,       // **
 
-    INCREMENT,       // ++
+    INCREMENT,      // ++
     DECREMENT,      // --
 
     // Comparison Operators

@@ -2,6 +2,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <variant>
 
 #include "lexer.h"
 #include "parser.h"
@@ -43,19 +44,18 @@ int main (int argc, char* argv[])
         std::cout << "--- Parsed " << nodes.size() << " statement(s) ---" << std::endl;
 
         Interpreter interpreter(std::move(nodes));
-        std::unordered_map<std::string, std::any> variables = interpreter.interpret();
+        std::unordered_map<std::string, PrometheusValue> variables = interpreter.interpret();
         std::cout << "--- Final Memory State ---" << std::endl;
         for (auto const& [name, val] : variables) {
             std::cout << name << " = ";
-            if (val.type() == typeid(int)) {
-                std::cout << std::any_cast<int>(val);
-            } else if (val.type() == typeid(double)) {
-                std::cout << std::any_cast<double>(val);
-            } else if (val.type() == typeid(std::string)) {
-                std::cout << std::any_cast<std::string>(val);
-            } else {
-                std::cout << "[Unknown Type]";
-            }
+            std::visit([](const auto& v) {
+                using T = std::decay_t<decltype(v)>;
+                if constexpr (std::is_same_v<T, std::monostate>) {
+                    std::cout << "None";
+                } else {
+                    std::cout << v;
+                }
+            }, val);
             std::cout << std::endl;
         }
 
