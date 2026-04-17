@@ -104,8 +104,21 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
 std::unique_ptr<ASTNode> Parser::parse_declaration() {
     Token type_token = eat(current_token().get_token());   // INT / STR / DOUBLE
     Token name_token = eat(TokenType::IDENTIFIER);
-    eat(TokenType::ASSIGN);
-    auto value_node = parse_expression();
+
+    std::unique_ptr<ASTNode> value_node;
+
+    if (current_token().get_token() == TokenType::ASSIGN) {
+            eat(TokenType::ASSIGN);
+            value_node = parse_expression();
+    } else {
+        // Provide a default value of 0 if no assignment exists
+        if (type_token.get_token() == TokenType::STR)
+            value_node = std::make_unique<StringNode>(Token(TokenType::STRING, ""));
+        else if (type_token.get_token() == TokenType::BOOL)
+            value_node = std::make_unique<BooleanNode>(Token(TokenType::BOOL, "false"));
+        else
+            value_node = std::make_unique<NumberNode>(Token(TokenType::NUMBER, "0"));
+    }
     eat(TokenType::SEMICOLON);
     return std::make_unique<VarDeclNode>(type_token.get_value(), name_token.get_value(), std::move(value_node));
 }

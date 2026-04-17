@@ -1,11 +1,10 @@
-bool is_fire = true;
+str s;
+bool b;
+b = true;
 
-print(is_fire);
 
-if (is_fire) {
-    print("IS ON FIRE");
-}
+print(s);
 
-else {
-    print("NOT ON FIRE");
-}
+s = "Hello World";
+
+print(s);
