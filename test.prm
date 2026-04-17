@@ -38,5 +38,5 @@ print("-");
 int j = 5;
 while (j > 0) {
     print(j);
-    j = j - 1;
+    j--;
 }

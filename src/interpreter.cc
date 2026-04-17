@@ -131,14 +131,14 @@ std::any Interpreter::visit(ASTNode* node) {
         return value;
     }
 
-    else if (IncrementNode* n = dynamic_cast<IncrementNode*>(node)) {
+    else if (IncrementDecrementNode* n = dynamic_cast<IncrementDecrementNode*>(node)) {
         auto it = variables.find(n->name);
         if (it == variables.end()) {
             throw std::runtime_error("Runtime Error: Undefined variable '" + n->name + "'");
         }
 
         double current_val = get_double(it->second);
-        double new_val = current_val + 1.0;
+        double new_val = current_val + n->inc_val;
         if (it->second.type() == typeid(int)) {
             variables[n->name] = static_cast<int>(new_val);
         } else {

@@ -39,6 +39,7 @@ enum class TokenType
     EXPONENT,       // **
 
     INCREMENT,       // ++
+    DECREMENT,      // --
 
     // Comparison Operators
     EQUAL,          // ==

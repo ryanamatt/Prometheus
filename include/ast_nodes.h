@@ -180,10 +180,11 @@ class EOFNode : public ASTNode {};
 /**
  * @brief Increments a variable.
  */
-class IncrementNode : public ASTNode {
+class IncrementDecrementNode : public ASTNode {
 public:
     std::string name;
-    IncrementNode(std::string name) : name(name) {}
+    double inc_val;
+    IncrementDecrementNode(std::string name, double inc_val) : name(name), inc_val(inc_val) {}
 };
 
 #endif // AST_NODES_H

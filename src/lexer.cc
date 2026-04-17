@@ -125,6 +125,14 @@ std::vector<Token> Lexer::tokenize() {
                             matched=true;
                         }
                         break;
+
+                    case '-':
+                        if (next_char == '-') {
+                            tokens.push_back(Token(TokenType::DECREMENT, "--"));
+                            current_pos += 2;
+                            matched=true;
+                        }
+                        break;
                 }
                 
                 if (!matched) {

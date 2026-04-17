@@ -67,7 +67,14 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
             Token id = eat(TokenType::IDENTIFIER);
             eat(TokenType::INCREMENT);
             eat(TokenType::SEMICOLON);
-            return std::make_unique<IncrementNode>(id.get_value());
+            return std::make_unique<IncrementDecrementNode>(id.get_value(), 1.0);
+        }
+
+        else if (peek().get_token() == TokenType::DECREMENT) {
+            Token id = eat(TokenType::IDENTIFIER);
+            eat(TokenType::DECREMENT);
+            eat(TokenType::SEMICOLON);
+            return std::make_unique<IncrementDecrementNode>(id.get_value(), -1.0);
         }
 
         else if (peek().get_token() == TokenType::LPAREN) {
