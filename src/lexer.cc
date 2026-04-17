@@ -46,6 +46,12 @@ std::vector<Token> Lexer::tokenize() {
                 tokens.push_back(this->make_string());
             }
 
+            // Comments use #
+            else if (ch == '#') {
+                while (source[current_pos] != '\n')
+                    current_pos++;
+            }
+
             else if (symbol_map.find(ch) != symbol_map.end()) {
 
                 char next_char = (current_pos + 1 < (int)source.size())
