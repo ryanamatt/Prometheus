@@ -88,6 +88,16 @@ public:
 };
 
 /**
+ * @brief Represents an Input statement
+ */
+class InputNode : public ASTNode {
+public:
+    std::string msg;
+
+    InputNode(std::string msg) : msg(msg) {}
+};
+
+/**
  * Represents an 'if-else' control flow structure
  */
 class IfNode : public ASTNode {

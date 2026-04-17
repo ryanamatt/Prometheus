@@ -5,12 +5,11 @@
 #include "exceptions.h"
 #include "interpreter.h"
 
-std::any Interpreter::interpret() {
-    std::any result;
+std::unordered_map<std::string, std::any> Interpreter::interpret() {
     for (auto& node : *nodes) {
-        result = visit(node.get());
+        visit(node.get());
     }
-    return result;
+    return variables;
 }
 
 double get_double(std::any value) {
@@ -167,6 +166,13 @@ std::any Interpreter::visit(ASTNode* node) {
         return output;
     }
 
+    else if (InputNode* n = dynamic_cast<InputNode*>(node)) {
+        std::cout << n->msg;
+        std::string user_input;
+        std::getline(std::cin, user_input);
+        return user_input;
+    }
+
     else if (IfNode* n = dynamic_cast<IfNode*>(node)) {
         // Check IF
         bool condition_met = get_bool(visit(n->condition.get()));
@@ -219,6 +225,23 @@ std::any Interpreter::visit(ASTNode* node) {
     }
 
     else if (CallNode* n = dynamic_cast<CallNode*>(node)) {
+        // Handle Built-in Conversions first
+        if (n->name == "int") {
+            std::any val = visit(n->args[0].get());
+            return std::stoi(get_string(val)); 
+        }
+
+        else if (n->name == "double") {
+            std::any val = visit(n->args[0].get());
+            return std::stod(get_string(val));
+        }
+
+        else if  (n->name == "str") {
+            std::any val = visit(n->args[0].get());
+            return std::to_string(get_double(val));
+        }
+
+
         if (functions.find(n->name) == functions.end()) {
             throw std::runtime_error("Runtime Error: Function '" + n->name + "' not defined.");
         }

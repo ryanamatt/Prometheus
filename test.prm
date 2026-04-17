@@ -1,6 +1,16 @@
+# Current Supported Types
+# int, double, str
+# Math Operators
+# +, -, *, /, %, **
+# ++, -- (Increment, Decrement)
+# Comparision Operators
+# ==, !=, >, <, >=, <=, &&, ||
+# Keywords,
+# print, return, func, if, else, elif, for, while
+
 int x = 10;
 int y = 20;
-double z = 0.0;
+double z = 20.0;
 str s = "Hello World";
 
 print(s);
@@ -27,7 +37,7 @@ else {
     print("FAIL");
 }
 
-if (sub(x, y) < 0) {
+if (sub(x, z) < 0) {
     print("The light of the firm dims,", "as the night grows cold.");
 }
 

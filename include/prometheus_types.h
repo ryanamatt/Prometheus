@@ -25,6 +25,7 @@ enum class TokenType
     ELIF,
     ELSE,
     PRINT,
+    INPUT,
 
     // Symbols
     ASSIGN,         // =
@@ -89,6 +90,7 @@ inline std::string to_string(TokenType t) {
         case TokenType::ELIF:       return "ELIF";
         case TokenType::ELSE:       return "ELSE";
         case TokenType::PRINT:      return "PRINT";
+        case TokenType::INPUT:      return "INPUT";
 
         // Symbols
         case TokenType::ASSIGN:     return "ASSIGN";

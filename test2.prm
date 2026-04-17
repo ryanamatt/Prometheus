@@ -1,0 +1,7 @@
+int x = 20;
+str s = input("Enter String: ");
+
+int s_int = int(s);
+
+print(s);
+print(s_int);

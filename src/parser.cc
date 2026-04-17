@@ -84,6 +84,7 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
     }
 
     if (tt == TokenType::PRINT)  return parse_print();
+    if (tt == TokenType::INPUT)  return parse_input();
     if (tt == TokenType::IF)     return parse_if();
     if (tt == TokenType::WHILE)  return parse_while();
     if (tt == TokenType::FOR)    return parse_for();
@@ -132,6 +133,19 @@ std::unique_ptr<PrintNode> Parser::parse_print() {
     eat(TokenType::RPAREN);
     eat(TokenType::SEMICOLON);
     return std::make_unique<PrintNode>(std::move(expressions));
+}
+
+std::unique_ptr<InputNode> Parser::parse_input() {
+    eat(TokenType::INPUT);
+    eat(TokenType::LPAREN);
+
+    std::string prompt = "";
+    if (current_token().get_token() == TokenType::STRING) {
+        prompt = eat(TokenType::STRING).get_value();
+    }
+
+    eat(TokenType::RPAREN);
+    return std::make_unique<InputNode>(prompt);
 }
 
 std::unique_ptr<IfNode> Parser::parse_if() {
@@ -405,6 +419,17 @@ std::unique_ptr<ASTNode> Parser::parse_term() {
         return std::make_unique<StringNode>(eat(TokenType::STRING));
     }
 
+    if (tt == TokenType::INT || tt == TokenType::STR || tt == TokenType::DOUBLE) {
+        if (peek().get_token() == TokenType::LPAREN) {
+            // We treat the keyword as an identifier so parse_call can handle it
+            return parse_call_special(token.get_value()); 
+        }
+    }
+
+    if (tt == TokenType::INPUT) {
+        return parse_input();
+    }
+
     if (tt == TokenType::IDENTIFIER) {
         if (peek().get_token() == TokenType::LPAREN) {
             return parse_call();
@@ -415,4 +440,22 @@ std::unique_ptr<ASTNode> Parser::parse_term() {
     std::ostringstream oss;
     oss << "Expected expression, got " << to_string(tt) << " ('" << token.get_value() << "')";
     throw ParseException(oss.str());
+}
+
+std::unique_ptr<ASTNode> Parser::parse_call_special(std::string name) {
+    // already have the 'name' (e.g., "int"), so just skip the token
+    pos++; 
+    
+    eat(TokenType::LPAREN);
+    std::vector<std::unique_ptr<ASTNode>> args;
+    if (current_token().get_token() != TokenType::RPAREN) {
+        args.push_back(parse_expression());
+        while (current_token().get_token() == TokenType::COMMA) {
+            eat(TokenType::COMMA);
+            args.push_back(parse_expression());
+        }
+    }
+    eat(TokenType::RPAREN);
+
+    return std::make_unique<CallNode>(name, std::move(args));
 }

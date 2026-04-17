@@ -170,6 +170,7 @@ Token Lexer::make_identifier() {
         {"elif",   TokenType::ELIF},
         {"else",   TokenType::ELSE},
         {"print",  TokenType::PRINT},
+        {"input",  TokenType::INPUT},
         {"while",  TokenType::WHILE},
         {"for",    TokenType::FOR},
         {"func",   TokenType::FUNC},

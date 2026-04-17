@@ -67,6 +67,11 @@ private:
      */
     std::unique_ptr<PrintNode> parse_print();
 
+    /**
+     * @brief Parsers a `str var = input("String");` statement.
+     */
+    std::unique_ptr<InputNode> parse_input();
+
     /** 
      * @brief Parses an `if (...) { } elif (...) { } else { }` construct.
      */
@@ -129,6 +134,11 @@ private:
      * @brief Atomic terms: number literals, string literals, identifiers, call sites. 
      * */
     std::unique_ptr<ASTNode> parse_term();
+
+    /**
+     * @brief Handles type conversions int(), double(), str()
+     */
+    std::unique_ptr<ASTNode> parse_call_special(std::string name);
 };
 
 #endif // PARSER_H

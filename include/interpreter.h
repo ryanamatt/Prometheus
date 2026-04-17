@@ -19,7 +19,7 @@ public:
     /**
      * @brief Iterates through a list of top-level AST nodes and executes them in order.
      */
-    std::any interpret();
+    std::unordered_map<std::string, std::any> interpret();
 
     /**
      * @brief  Recursively visits an AST node and evaluates its value or executes its logic.
