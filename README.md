@@ -1,7 +1,3 @@
-<p align="center">
-    <img src="resources/Prometheus(128).png", alt="Prometheus Logo">
-</p>
-
 # **Prometheus Programming Language**
 
 **Prometheus** is a lightweight, statically-typed, interpreted programming language written in C++. Designed with a clean, C-style syntax, it features robust support for core data types, mathematical operations, and control flow.
