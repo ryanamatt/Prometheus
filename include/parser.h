@@ -125,6 +125,11 @@ private:
     */
     std::unique_ptr<ASTNode> parse_exponent();
 
+    /**
+     * @brief Parses a unary operator: !
+     */
+    std::unique_ptr<ASTNode> parse_unary();
+
     /** 
      * @brief Grouped sub-expression inside parentheses: `( <expr> )` 
      * */

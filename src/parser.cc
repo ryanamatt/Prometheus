@@ -400,7 +400,7 @@ std::unique_ptr<ASTNode> Parser::parse_factor() {
 }
 
 std::unique_ptr<ASTNode> Parser::parse_exponent() {
-    auto node = parse_parentheses();
+    auto node = parse_unary();
 
     while (current_token().get_token() == TokenType::EXPONENT) {
         Token op = eat(TokenType::EXPONENT);
@@ -408,6 +408,15 @@ std::unique_ptr<ASTNode> Parser::parse_exponent() {
     }
 
     return node;
+}
+
+std::unique_ptr<ASTNode> Parser::parse_unary() {
+    if (current_token().get_token() == TokenType::NOT) {
+        Token op = eat(TokenType::NOT);
+        // call parse_parentheses so it can handle !(a > b)
+        return std::make_unique<UnaryOpNode>(op, parse_unary());
+    }
+    return parse_parentheses(); 
 }
 
 std::unique_ptr<ASTNode> Parser::parse_parentheses() {

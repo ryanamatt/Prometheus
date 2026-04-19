@@ -141,6 +141,15 @@ PrometheusValue Interpreter::visit(ASTNode* node) {
         return value;
     }
 
+    else if (UnaryOpNode* n = dynamic_cast<UnaryOpNode*>(node)) {
+        PrometheusValue right_val = visit(n->right.get());
+
+        if (n->op.get_token() == TokenType::NOT) {
+            return !get_bool(right_val);
+        }
+        throw std::runtime_error("Runtime Error: Unsupported unary operator");
+    }
+
     else if (IncrementDecrementNode* n = dynamic_cast<IncrementDecrementNode*>(node)) {
         auto it = variables.find(n->name);
         if (it == variables.end()) {

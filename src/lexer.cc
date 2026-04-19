@@ -99,6 +99,10 @@ std::vector<Token> Lexer::tokenize() {
                             tokens.push_back(Token(TokenType::NOTEQUAL, "!="));
                             current_pos += 2;
                             matched = true;
+                        } else {
+                            tokens.push_back(Token(TokenType::NOT, "!"));
+                            current_pos++;
+                            matched = true;
                         }
                         break;
 

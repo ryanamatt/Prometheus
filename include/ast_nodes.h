@@ -75,6 +75,18 @@ public:
 };
 
 /**
+ * @brief Represents a unary operation (e.g., ! flag)
+ */
+class UnaryOpNode : public ASTNode {
+public:
+    Token op;
+    std::unique_ptr<ASTNode> right;
+
+    UnaryOpNode(Token op, std::unique_ptr<ASTNode> right)
+        : op(op), right(std::move(right)) {}
+};
+
+/**
  * @brief Represents a variable declaration (e.g., int x = 5;)
  */
 class VarDeclNode : public ASTNode {
