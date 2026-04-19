@@ -79,7 +79,7 @@ for (int i = 1; i < 101; i++;) {
     if (i % 3 == 0 && i % 5 == 0) {  
         print("FizzBuzz");  
     }  
-    elif (i % 3 == 0\) {  
+    elif (i % 3 == 0) {  
         print("Fizz");  
     }  
     elif (i % 5 == 0) {  
@@ -90,6 +90,10 @@ for (int i = 1; i < 101; i++;) {
     }  
 }
 ```
+
+### **Launguage Specifications**
+
+For full language specifications see [Language Specifications Markdown File](LANGUAGE_SPECIFICATIONS)
 
 ## **Technical Architecture**
 
@@ -120,3 +124,7 @@ Prometheus includes custom exception handling for:
 * **Lexer Errors**: Invalid characters or malformed numbers.  
 * **Parse Errors**: Syntax violations and unexpected tokens.  
 * **Runtime Errors**: Undefined functions, type mismatches, or missing variables.
+
+## ROADMAP
+
+See *[Roadmap Markdown File](ROADMAP.md)* for the full ROADMAP of things planned on being added.
