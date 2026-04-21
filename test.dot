@@ -1,7 +1,8 @@
 digraph AST {
-  graph [fontname="Helvetica", rankdir=TB, splines=ortho];
-  node  [fontname="Helvetica", style=filled, fillcolor="#AEDFF7", shape=box, margin="0.2,0.1"];
-  edge  [fontname="Helvetica", fontsize=10];
+  graph [fontname="Helvetica" rankdir=TB splines=polyline
+         nodesep=0.4 ranksep=0.6 ordering=out];
+  node  [fontname="Helvetica" style=filled fillcolor="#AEDFF7" shape=box margin="0.2,0.1"];
+  edge  [fontname="Helvetica" fontsize=9 arrowsize=0.7];
 
   n0 [label="Program", shape=ellipse, fillcolor="#FFD580"];
   n1 [label="VarDecl\nint x", shape=box, fillcolor="#AEDFF7"];

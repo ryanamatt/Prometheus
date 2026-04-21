@@ -7,10 +7,11 @@
 
 void DOTVisitor::generate(const std::vector<std::unique_ptr<ASTNode>>& nodes) {
     out_ << "digraph AST {\n";
-    out_ << "  graph [fontname=\"Helvetica\", rankdir=TB, splines=ortho];\n";
-    out_ << "  node  [fontname=\"Helvetica\", style=filled, fillcolor=\"#AEDFF7\","
-            " shape=box, margin=\"0.2,0.1\"];\n";
-    out_ << "  edge  [fontname=\"Helvetica\", fontsize=10];\n\n";
+    out_ << "  graph [fontname=\"Helvetica\" rankdir=TB splines=polyline\n"
+            "         nodesep=0.4 ranksep=0.6 ordering=out];\n";
+    out_ << "  node  [fontname=\"Helvetica\" style=filled fillcolor=\"#AEDFF7\""
+            " shape=box margin=\"0.2,0.1\"];\n";
+    out_ << "  edge  [fontname=\"Helvetica\" fontsize=9 arrowsize=0.7];\n\n";
 
     // Emit an invisible root node so multiple top-level statements are
     // anchored to a common "Program" entry point.
