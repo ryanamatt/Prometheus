@@ -9,6 +9,10 @@
 #include "interpreter.h"
 #include "exceptions.h"
 
+#ifdef VISUALIZE
+#include "dot_visitor.h"
+#endif
+
 int main (int argc, char* argv[])
 {
     if (argc < 2) {
@@ -57,6 +61,33 @@ int main (int argc, char* argv[])
 #ifdef DEBUG
         std::cout << "--- Parsed " << nodes.size() << " statement(s) ---" << std::endl;
         std::cout << "Now Interpreting Program\n" << std::endl;
+#endif
+
+        // ----------------------------------------------------------------
+        // Visualize (skips interpretation entirely)
+        // ----------------------------------------------------------------
+#ifdef VISUALIZE
+        // Derive output path: replace source extension with .dot
+        std::string dot_path = filename;
+        auto dot_pos = dot_path.rfind('.');
+        if (dot_pos != std::string::npos)
+            dot_path = dot_path.substr(0, dot_pos);
+        dot_path += ".dot";
+
+        std::ofstream dot_file(dot_path);
+        if (!dot_file.is_open()) {
+            std::cerr << "Error: Could not open output file '" << dot_path << "'" << std::endl;
+            return 1;
+        }
+
+        DOTVisitor visitor(dot_file);
+        visitor.generate(nodes);
+        dot_file.close();
+
+        std::cout << "AST written to: " << dot_path << std::endl;
+        std::cout << "Render with:    dot -Tpng " << dot_path
+                  << " -o ast.png" << std::endl;
+        return 0;
 #endif
 
         // ----------------------------------------------------------------
