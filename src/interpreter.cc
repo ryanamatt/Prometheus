@@ -14,31 +14,51 @@ std::unordered_map<std::string, PrometheusValue> Interpreter::interpret() {
 // Helpers — extract typed values from a PrometheusValue
 // ============================================================================
 
-static double get_double(const PrometheusValue& value) {
+/**
+ * @brief Returns the name of the active alternative in a PrometheusValue.
+ *        Used for user-facing type mismatch messages.
+ */
+static std::string type_name(const PrometheusValue& v) {
+    if (std::holds_alternative<int>(v))          return "int";
+    if (std::holds_alternative<double>(v))       return "double";
+    if (std::holds_alternative<bool>(v))         return "bool";
+    if (std::holds_alternative<std::string>(v))  return "str";
+    return "None";
+}
+ 
+static double get_double(const PrometheusValue& value, int line = 0) {
     if (auto* i = std::get_if<int>(&value))    return static_cast<double>(*i);
     if (auto* d = std::get_if<double>(&value)) return *d;
-    throw std::runtime_error("Runtime Error: Numeric value expected.");
+    throw TypeException(
+        "Expected a numeric value but got '" + type_name(value) + "'", line);
 }
-
-static int get_int(const PrometheusValue& value) {
+ 
+static int get_int(const PrometheusValue& value, int line = 0) {
     if (auto* i = std::get_if<int>(&value))    return *i;
     if (auto* d = std::get_if<double>(&value)) return static_cast<int>(*d);
-    throw std::runtime_error("Runtime Error: Numeric value expected.");
+    throw TypeException(
+        "Expected an integer value but got '" + type_name(value) + "'", line);
 }
-
-static const std::string& get_string(const PrometheusValue& value) {
+ 
+static const std::string& get_string(const PrometheusValue& value, int line = 0) {
     if (auto* s = std::get_if<std::string>(&value)) return *s;
-    throw std::runtime_error("Runtime Error: String value expected.");
+    throw TypeException(
+        "Expected a string value but got '" + type_name(value) + "'", line);
 }
-
-static bool get_bool(const PrometheusValue& value) {
-    if (auto* b = std::get_if<bool>(&value))   return *b;
-    if (auto* i = std::get_if<int>(&value))    return *i != 0;
-    if (auto* d = std::get_if<double>(&value)) return *d != 0.0;
+ 
+static bool get_bool(const PrometheusValue& value, int /*line*/ = 0) {
+    if (auto* b = std::get_if<bool>(&value))        return *b;
+    if (auto* i = std::get_if<int>(&value))         return *i != 0;
+    if (auto* d = std::get_if<double>(&value))      return *d != 0.0;
     if (auto* s = std::get_if<std::string>(&value)) return !s->empty() && *s != "false";
-    return false;
+    return false; // monostate / None
 }
-
+ 
+// Overload used in places without a line number (e.g. BooleanNode literal)
+static bool get_bool(const std::string& value) {
+    return value == "true";
+}
+ 
 static std::string value_to_string(const PrometheusValue& value) {
     if (auto* i = std::get_if<int>(&value))    return std::to_string(*i);
     if (auto* d = std::get_if<double>(&value)) {
@@ -51,6 +71,41 @@ static std::string value_to_string(const PrometheusValue& value) {
     if (auto* b = std::get_if<bool>(&value))        return *b ? "true" : "false";
     return "None"; // std::monostate
 }
+ 
+/**
+ * @brief Validates that the runtime value is compatible with the declared type,
+ *        and coerces it when the language rules allow (e.g. int → double).
+ *
+ * Throws TypeMismatchException on a hard mismatch.
+ */
+static PrometheusValue coerce_to_declared(const std::string& decl_type,
+                                           const std::string& var_name,
+                                           const PrometheusValue& value,
+                                           int line = 0) {
+    if (decl_type == "int") {
+        if (std::holds_alternative<int>(value))    return value;
+        if (std::holds_alternative<double>(value)) return static_cast<int>(std::get<double>(value));
+        if (std::holds_alternative<bool>(value))   return static_cast<int>(std::get<bool>(value));
+        throw TypeMismatchException(var_name, decl_type, type_name(value), line);
+    }
+    if (decl_type == "double") {
+        if (std::holds_alternative<double>(value)) return value;
+        if (std::holds_alternative<int>(value))    return static_cast<double>(std::get<int>(value));
+        if (std::holds_alternative<bool>(value))   return static_cast<double>(std::get<bool>(value));
+        throw TypeMismatchException(var_name, decl_type, type_name(value), line);
+    }
+    if (decl_type == "str") {
+        if (std::holds_alternative<std::string>(value)) return value;
+        throw TypeMismatchException(var_name, decl_type, type_name(value), line);
+    }
+    if (decl_type == "bool") {
+        if (std::holds_alternative<bool>(value)) return value;
+        if (std::holds_alternative<int>(value))  return std::get<int>(value) != 0;
+        throw TypeMismatchException(var_name, decl_type, type_name(value), line);
+    }
+    // Unknown / user-defined type → pass through without coercion
+    return value;
+}
 
 // ============================================================================
 // visit
@@ -58,19 +113,23 @@ static std::string value_to_string(const PrometheusValue& value) {
 
 PrometheusValue Interpreter::visit(ASTNode* node) {
 
+    // ------------------------------------------------------------------
+    // Literals
+    // ------------------------------------------------------------------
+
     if (NumberNode* n = dynamic_cast<NumberNode*>(node)) {
         if (n->value.find('.') != std::string::npos) {
-            return std::stod(n->value);
+            try { return std::stod(n->value); }
+            catch (...) {
+                throw RuntimeException("Malformed numeric literal '" + n->value + "'",
+                                       n->token.get_line());
+            }
         }
-        return std::stoi(n->value);
-    }
-
-    else if (VarNode* n = dynamic_cast<VarNode*>(node)) {
-        auto it = variables.find(n->value);
-        if (it != variables.end()) {
-            return it->second;
+        try { return std::stoi(n->value); }
+        catch (...) {
+            throw RuntimeException("Integer literal out of range '" + n->value + "'",
+                                   n->token.get_line());
         }
-        return std::monostate{};
     }
 
     else if (StringNode* n = dynamic_cast<StringNode*>(node)) {
@@ -81,85 +140,157 @@ PrometheusValue Interpreter::visit(ASTNode* node) {
         return get_bool(n->value);
     }
 
+    // ------------------------------------------------------------------
+    // Variable read
+    // ------------------------------------------------------------------
+
+    else if (VarNode* n = dynamic_cast<VarNode*>(node)) {
+        auto it = variables.find(n->value);
+        if (it == variables.end()) {
+            throw UndefinedVariableException(n->value, n->token.get_line());
+        }
+        return it->second;
+    }
+
+    // ------------------------------------------------------------------
+    // Binary operations
+    // ------------------------------------------------------------------
+
     else if (BinOpNode* n = dynamic_cast<BinOpNode*>(node)) {
+        int op_line = n->op.get_line();
         PrometheusValue left_val  = visit(n->left.get());
         PrometheusValue right_val = visit(n->right.get());
-
+ 
         switch (n->op.get_token()) {
-
-            // Arithmetic
-            case TokenType::PLUS:
-                return get_double(left_val) + get_double(right_val);
-
+ 
+            // Arithmetic ---------------------------------------------------
+            case TokenType::PLUS: {
+                // Allow string concatenation
+                bool l_str = std::holds_alternative<std::string>(left_val);
+                bool r_str = std::holds_alternative<std::string>(right_val);
+                if (l_str || r_str) {
+                    if (!l_str || !r_str) {
+                        throw OperatorException("+",
+                            "a mix of string and non-string operands "
+                            "(use str() to convert)", op_line);
+                    }
+                    return std::get<std::string>(left_val) + std::get<std::string>(right_val);
+                }
+                return get_double(left_val, op_line) + get_double(right_val, op_line);
+            }
+ 
             case TokenType::MINUS:
-                return get_double(left_val) - get_double(right_val);
-
+                return get_double(left_val, op_line) - get_double(right_val, op_line);
+ 
             case TokenType::MULTIPLY:
-                return get_double(left_val) * get_double(right_val);
-
-            case TokenType::DIVIDE:
-                return get_double(left_val) / get_double(right_val);
-
-            case TokenType::MODULO:
-                return get_int(left_val) % get_int(right_val);
-
+                return get_double(left_val, op_line) * get_double(right_val, op_line);
+ 
+            case TokenType::DIVIDE: {
+                double rhs = get_double(right_val, op_line);
+                if (rhs == 0.0) throw DivisionByZeroException(op_line);
+                return get_double(left_val, op_line) / rhs;
+            }
+ 
+            case TokenType::MODULO: {
+                int rhs = get_int(right_val, op_line);
+                if (rhs == 0) throw DivisionByZeroException(op_line);
+                return get_int(left_val, op_line) % rhs;
+            }
+ 
             case TokenType::EXPONENT:
-                return std::pow(get_double(left_val), get_double(right_val));
-
-            // Comparison
+                return std::pow(get_double(left_val, op_line), get_double(right_val, op_line));
+ 
+            // Comparison ---------------------------------------------------
             case TokenType::EQUAL:
                 if (std::holds_alternative<std::string>(left_val) &&
                     std::holds_alternative<std::string>(right_val)) {
-                    return get_string(left_val) == get_string(right_val);
+                    return get_string(left_val, op_line) == get_string(right_val, op_line);
                 }
-                return get_double(left_val) == get_double(right_val);
-
+                return get_double(left_val, op_line) == get_double(right_val, op_line);
+ 
             case TokenType::NOTEQUAL:
                 if (std::holds_alternative<std::string>(left_val) &&
                     std::holds_alternative<std::string>(right_val)) {
-                    return get_string(left_val) != get_string(right_val);
+                    return get_string(left_val, op_line) != get_string(right_val, op_line);
                 }
-                return get_double(left_val) != get_double(right_val);
-
-            case TokenType::GREATER:    return get_double(left_val) >  get_double(right_val);
-            case TokenType::LESSER:     return get_double(left_val) <  get_double(right_val);
-            case TokenType::GREATEREQ:  return get_double(left_val) >= get_double(right_val);
-            case TokenType::LESSEREQ:   return get_double(left_val) <= get_double(right_val);
-
-            // Logical
-            case TokenType::AND: return get_bool(left_val) && get_bool(right_val);
-            case TokenType::OR:  return get_bool(left_val) || get_bool(right_val);
-
+                return get_double(left_val, op_line) != get_double(right_val, op_line);
+ 
+            case TokenType::GREATER:
+                return get_double(left_val, op_line) > get_double(right_val, op_line);
+            case TokenType::LESSER:
+                return get_double(left_val, op_line) < get_double(right_val, op_line);
+            case TokenType::GREATEREQ:
+                return get_double(left_val, op_line) >= get_double(right_val, op_line);
+            case TokenType::LESSEREQ:
+                return get_double(left_val, op_line) <= get_double(right_val, op_line);
+ 
+            // Logical ------------------------------------------------------
+            case TokenType::AND: return get_bool(left_val, op_line) && get_bool(right_val, op_line);
+            case TokenType::OR:  return get_bool(left_val, op_line) || get_bool(right_val, op_line);
+ 
             default:
-                throw std::runtime_error("Runtime Error: Operator not supported in binary expression");
+                throw OperatorException(n->op.get_value(), "this expression", op_line);
         }
     }
 
+    // ------------------------------------------------------------------
+    // Unary operations
+    // ------------------------------------------------------------------
+ 
+    else if (UnaryOpNode* n = dynamic_cast<UnaryOpNode*>(node)) {
+        PrometheusValue right_val = visit(n->right.get());
+        int op_line = n->op.get_line();
+ 
+        if (n->op.get_token() == TokenType::NOT) {
+            return !get_bool(right_val, op_line);
+        }
+        throw OperatorException(n->op.get_value(), "this expression", op_line);
+    }
+
+    // ------------------------------------------------------------------
+    // Variable declaration / assignment
+    // ------------------------------------------------------------------
+ 
     else if (VarDeclNode* n = dynamic_cast<VarDeclNode*>(node)) {
         PrometheusValue value = visit(n->value_node.get());
+ 
+        // Type-check only for typed declarations (var_type != name means it
+        // was a typed decl; otherwise it was a bare re-assignment).
+        if (n->var_type != n->name) {
+            // Re-assignment to an existing variable: check that new value
+            // matches its stored type.
+            auto it = variables.find(n->name);
+            if (it != variables.end()) {
+                // If we can determine the "declared" type from the stored
+                // value we enforce it; for re-assignments we simply store.
+            }
+            value = coerce_to_declared(n->var_type, n->name, value);
+        }
+ 
         variables[n->name] = value;
         return value;
     }
 
-    else if (UnaryOpNode* n = dynamic_cast<UnaryOpNode*>(node)) {
-        PrometheusValue right_val = visit(n->right.get());
-
-        if (n->op.get_token() == TokenType::NOT) {
-            return !get_bool(right_val);
-        }
-        throw std::runtime_error("Runtime Error: Unsupported unary operator");
-    }
-
+    // ------------------------------------------------------------------
+    // Increment / Decrement
+    // ------------------------------------------------------------------
+ 
     else if (IncrementDecrementNode* n = dynamic_cast<IncrementDecrementNode*>(node)) {
         auto it = variables.find(n->name);
         if (it == variables.end()) {
-            throw std::runtime_error("Runtime Error: Undefined variable '" + n->name + "'");
+            throw UndefinedVariableException(n->name);
         }
-
+ 
+        if (!std::holds_alternative<int>(it->second) &&
+            !std::holds_alternative<double>(it->second)) {
+            throw TypeException(
+                "Increment/decrement requires a numeric variable, but '" +
+                n->name + "' is of type '" + type_name(it->second) + "'");
+        }
+ 
         double current_val = get_double(it->second);
         double new_val = current_val + n->inc_val;
-
-        // Preserve the original type (int stays int, double stays double)
+ 
         if (std::holds_alternative<int>(it->second)) {
             variables[n->name] = static_cast<int>(new_val);
         } else {
@@ -168,37 +299,52 @@ PrometheusValue Interpreter::visit(ASTNode* node) {
         return variables[n->name];
     }
 
+    // ------------------------------------------------------------------
+    // Print
+    // ------------------------------------------------------------------
+ 
     else if (PrintNode* n = dynamic_cast<PrintNode*>(node)) {
         std::vector<std::string> results;
         for (const auto& expr : n->expressions) {
             results.push_back(value_to_string(visit(expr.get())));
         }
-
+ 
         std::stringstream ss;
         for (size_t i = 0; i < results.size(); ++i) {
             ss << results[i];
             if (i < results.size() - 1) ss << " ";
         }
-
+ 
         std::string output = ss.str();
         std::cout << output << std::endl;
         return output;
     }
 
+    // ------------------------------------------------------------------
+    // Input
+    // ------------------------------------------------------------------
+ 
     else if (InputNode* n = dynamic_cast<InputNode*>(node)) {
         std::cout << n->msg;
         std::string user_input;
-        std::getline(std::cin, user_input);
+        if (!std::getline(std::cin, user_input)) {
+            // EOF on stdin — return empty string rather than crashing
+            return std::string{};
+        }
         return user_input;
     }
-
+ 
+    // ------------------------------------------------------------------
+    // If / elif / else
+    // ------------------------------------------------------------------
+ 
     else if (IfNode* n = dynamic_cast<IfNode*>(node)) {
         if (get_bool(visit(n->condition.get()))) {
             for (auto& stmt : n->then_branch)
                 visit(stmt.get());
             return std::monostate{};
         }
-
+ 
         for (auto& [condition, branch] : n->elif_branches) {
             if (get_bool(visit(condition.get()))) {
                 for (auto& stmt : branch)
@@ -206,12 +352,16 @@ PrometheusValue Interpreter::visit(ASTNode* node) {
                 return std::monostate{};
             }
         }
-
+ 
         for (auto& stmt : n->else_branch)
             visit(stmt.get());
         return std::monostate{};
     }
 
+    // ------------------------------------------------------------------
+    // While
+    // ------------------------------------------------------------------
+ 
     else if (WhileNode* n = dynamic_cast<WhileNode*>(node)) {
         while (get_bool(visit(n->condition.get()))) {
             for (auto& stmt : n->do_branch)
@@ -220,6 +370,10 @@ PrometheusValue Interpreter::visit(ASTNode* node) {
         return std::monostate{};
     }
 
+    // ------------------------------------------------------------------
+    // For
+    // ------------------------------------------------------------------
+ 
     else if (ForNode* n = dynamic_cast<ForNode*>(node)) {
         visit(n->variable.get());
         while (get_bool(visit(n->condition.get()))) {
@@ -230,53 +384,117 @@ PrometheusValue Interpreter::visit(ASTNode* node) {
         return std::monostate{};
     }
 
+    // ------------------------------------------------------------------
+    // Function declaration
+    // ------------------------------------------------------------------
+ 
     else if (FunctionDeclNode* n = dynamic_cast<FunctionDeclNode*>(node)) {
+        if (functions.count(n->name)) {
+            throw RuntimeException("Function '" + n->name + "' is already defined");
+        }
         functions[n->name] = n;
         return std::monostate{};
     }
 
+    // ------------------------------------------------------------------
+    // Return
+    // ------------------------------------------------------------------
+ 
     else if (ReturnNode* n = dynamic_cast<ReturnNode*>(node)) {
         PrometheusValue value = visit(n->value_node.get());
         throw ReturnException{value};
     }
 
+    // ------------------------------------------------------------------
+    // Function call
+    // ------------------------------------------------------------------
+ 
     else if (CallNode* n = dynamic_cast<CallNode*>(node)) {
-        // Built-in type conversions
+ 
+        // ---- Built-in type conversions --------------------------------
+ 
         if (n->name == "int") {
+            if (n->args.size() != 1)
+                throw ArgumentCountException("int", 1, (int)n->args.size());
             PrometheusValue val = visit(n->args[0].get());
-            return std::stoi(get_string(val));
+            // Already int: return as-is
+            if (std::holds_alternative<int>(val)) return val;
+            // double → int
+            if (std::holds_alternative<double>(val))
+                return static_cast<int>(std::get<double>(val));
+            // bool → int
+            if (std::holds_alternative<bool>(val))
+                return static_cast<int>(std::get<bool>(val));
+            // string → int
+            const std::string& s = get_string(val);
+            try { return std::stoi(s); }
+            catch (...) {
+                throw ConversionException(s, "int");
+            }
         }
+ 
         if (n->name == "double") {
+            if (n->args.size() != 1)
+                throw ArgumentCountException("double", 1, (int)n->args.size());
             PrometheusValue val = visit(n->args[0].get());
-            return std::stod(get_string(val));
+            if (std::holds_alternative<double>(val)) return val;
+            if (std::holds_alternative<int>(val))
+                return static_cast<double>(std::get<int>(val));
+            if (std::holds_alternative<bool>(val))
+                return static_cast<double>(std::get<bool>(val));
+            const std::string& s = get_string(val);
+            try { return std::stod(s); }
+            catch (...) {
+                throw ConversionException(s, "double");
+            }
         }
+ 
         if (n->name == "str") {
+            if (n->args.size() != 1)
+                throw ArgumentCountException("str", 1, (int)n->args.size());
             PrometheusValue val = visit(n->args[0].get());
-            return std::to_string(get_double(val));
+            return value_to_string(val);
         }
-
+ 
         if (n->name == "bool") {
+            if (n->args.size() != 1)
+                throw ArgumentCountException("bool", 1, (int)n->args.size());
             PrometheusValue val = visit(n->args[0].get());
             return get_bool(val);
         }
-
+ 
+        // ---- User-defined functions ------------------------------------
+ 
         if (functions.find(n->name) == functions.end()) {
-            throw std::runtime_error("Runtime Error: Function '" + n->name + "' not defined.");
+            throw UndefinedFunctionException(n->name);
         }
-
+ 
         FunctionDeclNode* func_node = functions[n->name];
-
+ 
+        if (n->args.size() != func_node->params.size()) {
+            throw ArgumentCountException(n->name,
+                                         (int)func_node->params.size(),
+                                         (int)n->args.size());
+        }
+ 
         std::vector<PrometheusValue> arg_values;
+        arg_values.reserve(n->args.size());
         for (auto& arg : n->args)
             arg_values.push_back(visit(arg.get()));
-
+ 
+        // Build local interpreter with a copy of the current variable scope
+        // so that closures can read outer variables.
         Interpreter local_interpreter(func_node->body, variables);
         local_interpreter.functions = functions;
-
-        for (size_t i = 0; i < arg_values.size() && i < func_node->params.size(); i++) {
-            local_interpreter.variables[func_node->params[i].second] = arg_values[i];
+ 
+        // Bind arguments to parameter names (with type coercion)
+        for (size_t i = 0; i < arg_values.size(); i++) {
+            const std::string& p_type = func_node->params[i].first;
+            const std::string& p_name = func_node->params[i].second;
+            local_interpreter.variables[p_name] =
+                coerce_to_declared(p_type, p_name, arg_values[i]);
         }
-
+ 
         try {
             for (auto& stmt : func_node->body) {
                 local_interpreter.visit(stmt.get());
@@ -285,6 +503,6 @@ PrometheusValue Interpreter::visit(ASTNode* node) {
             return e.value;
         }
     }
-
+ 
     return std::monostate{};
 }

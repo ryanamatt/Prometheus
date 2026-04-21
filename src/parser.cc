@@ -1,4 +1,5 @@
 #include <sstream>
+#include <unordered_set>
 #include "parser.h"
 
 // ============================================================================
@@ -30,7 +31,7 @@ Token Parser::eat(TokenType expected_type) {
     oss << "Syntax Error: Expected " << to_string(expected_type)
         << ", got " << to_string(token.get_token())
         << " ('" << token.get_value() << "')";
-    throw ParseException(oss.str());
+    throw ParseException(oss.str(), token.get_line());
 }
 
 // ============================================================================
@@ -66,6 +67,8 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
         if (peek().get_token() == TokenType::INCREMENT) {
             Token id = eat(TokenType::IDENTIFIER);
             eat(TokenType::INCREMENT);
+            if (current_token().get_token() != TokenType::SEMICOLON)
+                throw MissingSemicolonException("'++", current_token().get_line());
             eat(TokenType::SEMICOLON);
             return std::make_unique<IncrementDecrementNode>(id.get_value(), 1.0);
         }
@@ -73,12 +76,22 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
         else if (peek().get_token() == TokenType::DECREMENT) {
             Token id = eat(TokenType::IDENTIFIER);
             eat(TokenType::DECREMENT);
+            if (current_token().get_token() != TokenType::SEMICOLON)
+                throw MissingSemicolonException("'--", current_token().get_line());
             eat(TokenType::SEMICOLON);
             return std::make_unique<IncrementDecrementNode>(id.get_value(), -1.0);
         }
 
         else if (peek().get_token() == TokenType::LPAREN) {
-            return parse_call();
+            auto call_node = parse_call();
+            if (current_token().get_token() != TokenType::SEMICOLON) {
+                throw MissingSemicolonException(
+                    "call to '" +
+                    static_cast<CallNode*>(call_node.get())->name + "()'",
+                    current_token().get_line());
+            }
+            eat(TokenType::SEMICOLON);
+            return call_node;
         }
         return parse_identifier();
     }
@@ -98,11 +111,11 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
 
     std::ostringstream oss;
     oss << "Unexpected token: " << to_string(tt) << " ('" << token.get_value() << "')";
-    throw ParseException(oss.str());
+    throw ParseException(oss.str(), token.get_line());
 }
 
 std::unique_ptr<ASTNode> Parser::parse_declaration() {
-    Token type_token = eat(current_token().get_token());   // INT / STR / DOUBLE
+    Token type_token = eat(current_token().get_token());   // INT / STR / DOUBLE / BOOL
     Token name_token = eat(TokenType::IDENTIFIER);
 
     std::unique_ptr<ASTNode> value_node;
@@ -114,197 +127,383 @@ std::unique_ptr<ASTNode> Parser::parse_declaration() {
         // Provide a default value of 0 if no assignment exists
         if (type_token.get_token() == TokenType::STR)
             value_node = std::make_unique<StringNode>(Token(TokenType::STRING, ""));
+
         else if (type_token.get_token() == TokenType::BOOL)
             value_node = std::make_unique<BooleanNode>(Token(TokenType::BOOL, "false"));
+
         else
             value_node = std::make_unique<NumberNode>(Token(TokenType::NUMBER, "0"));
     }
+
+    if (current_token().get_token() != TokenType::SEMICOLON) {
+        throw MissingSemicolonException(
+            "declaration of '" + name_token.get_value() + "'",
+            current_token().get_line());
+    }
+    
     eat(TokenType::SEMICOLON);
     return std::make_unique<VarDeclNode>(type_token.get_value(), name_token.get_value(), std::move(value_node));
 }
 
 std::unique_ptr<ASTNode> Parser::parse_identifier() {
     Token id_token = eat(TokenType::IDENTIFIER);
+ 
+    if (current_token().get_token() != TokenType::ASSIGN) {
+        std::ostringstream oss;
+        oss << "Expected '=' after identifier '" << id_token.get_value()
+            << "', got " << to_string(current_token().get_token())
+            << " ('" << current_token().get_value() << "')";
+        throw ParseException(oss.str(), current_token().get_line());
+    }
     eat(TokenType::ASSIGN);
+ 
     auto value_node = parse_expression();
+ 
+    if (current_token().get_token() != TokenType::SEMICOLON) {
+        throw MissingSemicolonException(
+            "assignment to '" + id_token.get_value() + "'",
+            current_token().get_line());
+    }
     eat(TokenType::SEMICOLON);
     return std::make_unique<VarDeclNode>(id_token.get_value(), id_token.get_value(), std::move(value_node));
 }
 
 std::unique_ptr<PrintNode> Parser::parse_print() {
-    eat(TokenType::PRINT);
+    Token print_tok = eat(TokenType::PRINT);
+ 
+    if (current_token().get_token() != TokenType::LPAREN) {
+        throw MissingBraceException('(', current_token().get_line());
+    }
     eat(TokenType::LPAREN);
-
+ 
+    if (current_token().get_token() == TokenType::RPAREN) {
+        throw ParseException("print() requires at least one argument", print_tok.get_line());
+    }
+ 
     std::vector<std::unique_ptr<ASTNode>> expressions;
     expressions.push_back(parse_expression());
-
+ 
     while (current_token().get_token() == TokenType::COMMA) {
         eat(TokenType::COMMA);
+        if (current_token().get_token() == TokenType::RPAREN) {
+            throw ParseException("Trailing comma in print() argument list", current_token().get_line());
+        }
         expressions.push_back(parse_expression());
     }
-
+ 
+    if (current_token().get_token() != TokenType::RPAREN) {
+        throw MissingBraceException('(', print_tok.get_line());
+    }
     eat(TokenType::RPAREN);
+ 
+    if (current_token().get_token() != TokenType::SEMICOLON) {
+        throw MissingSemicolonException("print() statement", current_token().get_line());
+    }
     eat(TokenType::SEMICOLON);
     return std::make_unique<PrintNode>(std::move(expressions));
 }
 
 std::unique_ptr<InputNode> Parser::parse_input() {
-    eat(TokenType::INPUT);
+    Token input_tok = eat(TokenType::INPUT);
+ 
+    if (current_token().get_token() != TokenType::LPAREN) {
+        throw MissingBraceException('(', current_token().get_line());
+    }
     eat(TokenType::LPAREN);
-
+ 
     std::string prompt = "";
     if (current_token().get_token() == TokenType::STRING) {
         prompt = eat(TokenType::STRING).get_value();
+    } else if (current_token().get_token() != TokenType::RPAREN) {
+        throw ParseException(
+            "input() prompt must be a string literal",
+            current_token().get_line());
     }
-
+ 
+    if (current_token().get_token() != TokenType::RPAREN) {
+        throw MissingBraceException('(', input_tok.get_line());
+    }
     eat(TokenType::RPAREN);
     return std::make_unique<InputNode>(prompt);
 }
 
 std::unique_ptr<IfNode> Parser::parse_if() {
-    eat(TokenType::IF);
+    Token if_tok = eat(TokenType::IF);
+ 
+    if (current_token().get_token() != TokenType::LPAREN) {
+        throw MissingBraceException('(', if_tok.get_line());
+    }
     eat(TokenType::LPAREN);
     auto condition = parse_expression();
+    if (current_token().get_token() != TokenType::RPAREN) {
+        throw MissingBraceException('(', if_tok.get_line());
+    }
     eat(TokenType::RPAREN);
-
+ 
+    if (current_token().get_token() != TokenType::LBRACE) {
+        throw MissingBraceException('{', if_tok.get_line());
+    }
     eat(TokenType::LBRACE);
     std::vector<std::unique_ptr<ASTNode>> then_branch;
     while (current_token().get_token() != TokenType::RBRACE) {
+        if (current_token().get_token() == TokenType::EOF_TOKEN) {
+            throw MissingBraceException('{', if_tok.get_line());
+        }
         then_branch.push_back(parse_statement());
     }
     eat(TokenType::RBRACE);
-
+ 
     // Zero or more elif branches
     std::vector<std::pair<std::unique_ptr<ASTNode>, std::vector<std::unique_ptr<ASTNode>>>> elif_branches;
     while (current_token().get_token() == TokenType::ELIF) {
-        eat(TokenType::ELIF);
+        Token elif_tok = eat(TokenType::ELIF);
+ 
+        if (current_token().get_token() != TokenType::LPAREN) {
+            throw MissingBraceException('(', elif_tok.get_line());
+        }
         eat(TokenType::LPAREN);
         auto elif_cond = parse_expression();
+        if (current_token().get_token() != TokenType::RPAREN) {
+            throw MissingBraceException('(', elif_tok.get_line());
+        }
         eat(TokenType::RPAREN);
-
+ 
+        if (current_token().get_token() != TokenType::LBRACE) {
+            throw MissingBraceException('{', elif_tok.get_line());
+        }
         eat(TokenType::LBRACE);
         std::vector<std::unique_ptr<ASTNode>> elif_stmts;
         while (current_token().get_token() != TokenType::RBRACE) {
+            if (current_token().get_token() == TokenType::EOF_TOKEN) {
+                throw MissingBraceException('{', elif_tok.get_line());
+            }
             elif_stmts.push_back(parse_statement());
         }
         eat(TokenType::RBRACE);
-
+ 
         elif_branches.emplace_back(std::move(elif_cond), std::move(elif_stmts));
     }
-
+ 
     // Optional else branch
     std::vector<std::unique_ptr<ASTNode>> else_branch;
     if (current_token().get_token() == TokenType::ELSE) {
-        eat(TokenType::ELSE);
+        Token else_tok = eat(TokenType::ELSE);
+ 
+        if (current_token().get_token() != TokenType::LBRACE) {
+            throw MissingBraceException('{', else_tok.get_line());
+        }
         eat(TokenType::LBRACE);
         while (current_token().get_token() != TokenType::RBRACE) {
+            if (current_token().get_token() == TokenType::EOF_TOKEN) {
+                throw MissingBraceException('{', else_tok.get_line());
+            }
             else_branch.push_back(parse_statement());
         }
         eat(TokenType::RBRACE);
     }
-
+ 
     return std::make_unique<IfNode>(std::move(condition), std::move(then_branch),
                                     std::move(elif_branches), std::move(else_branch));
 }
 
 std::unique_ptr<WhileNode> Parser::parse_while() {
-    eat(TokenType::WHILE);
+    Token while_tok = eat(TokenType::WHILE);
+ 
+    if (current_token().get_token() != TokenType::LPAREN) {
+        throw MissingBraceException('(', while_tok.get_line());
+    }
     eat(TokenType::LPAREN);
     auto condition = parse_expression();
+    if (current_token().get_token() != TokenType::RPAREN) {
+        throw MissingBraceException('(', while_tok.get_line());
+    }
     eat(TokenType::RPAREN);
-
+ 
+    if (current_token().get_token() != TokenType::LBRACE) {
+        throw MissingBraceException('{', while_tok.get_line());
+    }
     eat(TokenType::LBRACE);
     std::vector<std::unique_ptr<ASTNode>> do_branch;
     while (current_token().get_token() != TokenType::RBRACE) {
+        if (current_token().get_token() == TokenType::EOF_TOKEN) {
+            throw MissingBraceException('{', while_tok.get_line());
+        }
         do_branch.push_back(parse_statement());
     }
     eat(TokenType::RBRACE);
-
+ 
     return std::make_unique<WhileNode>(std::move(condition), std::move(do_branch));
 }
 
 std::unique_ptr<ForNode> Parser::parse_for() {
-    eat(TokenType::FOR);
+    Token for_tok = eat(TokenType::FOR);
+ 
+    if (current_token().get_token() != TokenType::LPAREN) {
+        throw MissingBraceException('(', for_tok.get_line());
+    }
     eat(TokenType::LPAREN);
     auto var       = parse_declaration();      // init statement (consumes its own semicolon)
     auto condition = parse_expression();
+    if (current_token().get_token() != TokenType::SEMICOLON) {
+        throw MissingSemicolonException("for-loop condition", current_token().get_line());
+    }
     eat(TokenType::SEMICOLON);
     auto change_var = parse_statement();        // update statement
+    if (current_token().get_token() != TokenType::RPAREN) {
+        throw MissingBraceException('(', for_tok.get_line());
+    }
     eat(TokenType::RPAREN);
-
+ 
+    if (current_token().get_token() != TokenType::LBRACE) {
+        throw MissingBraceException('{', for_tok.get_line());
+    }
     eat(TokenType::LBRACE);
     std::vector<std::unique_ptr<ASTNode>> do_branch;
     while (current_token().get_token() != TokenType::RBRACE) {
+        if (current_token().get_token() == TokenType::EOF_TOKEN) {
+            throw MissingBraceException('{', for_tok.get_line());
+        }
         do_branch.push_back(parse_statement());
     }
     eat(TokenType::RBRACE);
-
+ 
     return std::make_unique<ForNode>(std::move(var), std::move(condition),
                                      std::move(change_var), std::move(do_branch));
 }
 
 std::unique_ptr<FunctionDeclNode> Parser::parse_func() {
-    eat(TokenType::FUNC);
-
-    // Return type: any type keyword or identifier is accepted
+    Token func_tok = eat(TokenType::FUNC);
+ 
+    // Return type: any type keyword or identifier
     Token return_type_tok = eat(current_token().get_token());
     std::string return_type = return_type_tok.get_value();
-
+ 
+    if (current_token().get_token() != TokenType::IDENTIFIER) {
+        throw ParseException(
+            "Expected function name after return type '" + return_type + "'",
+            current_token().get_line());
+    }
     std::string name = eat(TokenType::IDENTIFIER).get_value();
-
+ 
+    if (current_token().get_token() != TokenType::LPAREN) {
+        throw MissingBraceException('(', current_token().get_line());
+    }
     eat(TokenType::LPAREN);
+ 
     std::vector<std::pair<std::string, std::string>> params;
+    std::unordered_set<std::string> seen_params;
+ 
     if (current_token().get_token() != TokenType::RPAREN) {
         while (true) {
+            // Validate that the next token is a type keyword
+            TokenType pt = current_token().get_token();
+            if (pt != TokenType::INT && pt != TokenType::STR &&
+                pt != TokenType::DOUBLE && pt != TokenType::BOOL &&
+                pt != TokenType::IDENTIFIER) {
+                throw ParseException(
+                    "Expected parameter type in function '" + name + "', got '" +
+                    current_token().get_value() + "'",
+                    current_token().get_line());
+            }
+ 
             std::string p_type = current_token().get_value();
-            eat(current_token().get_token());               // consume type token
-            std::string p_name = eat(TokenType::IDENTIFIER).get_value();
+            eat(current_token().get_token());   // consume type token
+ 
+            if (current_token().get_token() != TokenType::IDENTIFIER) {
+                throw ParseException(
+                    "Expected parameter name after type '" + p_type +
+                    "' in function '" + name + "'",
+                    current_token().get_line());
+            }
+            Token p_name_tok = eat(TokenType::IDENTIFIER);
+            std::string p_name = p_name_tok.get_value();
+ 
+            if (!seen_params.insert(p_name).second) {
+                throw DuplicateParamException(name, p_name, p_name_tok.get_line());
+            }
             params.emplace_back(p_type, p_name);
-
+ 
             if (current_token().get_token() == TokenType::COMMA) {
                 eat(TokenType::COMMA);
+                if (current_token().get_token() == TokenType::RPAREN) {
+                    throw ParseException(
+                        "Trailing comma in parameter list of function '" + name + "'",
+                        current_token().get_line());
+                }
             } else {
                 break;
             }
         }
     }
+ 
+    if (current_token().get_token() != TokenType::RPAREN) {
+        throw MissingBraceException('(', func_tok.get_line());
+    }
     eat(TokenType::RPAREN);
-
+ 
+    if (current_token().get_token() != TokenType::LBRACE) {
+        throw MissingBraceException('{', func_tok.get_line());
+    }
     eat(TokenType::LBRACE);
     std::vector<std::unique_ptr<ASTNode>> body;
     while (current_token().get_token() != TokenType::RBRACE) {
+        if (current_token().get_token() == TokenType::EOF_TOKEN) {
+            throw MissingBraceException('{', func_tok.get_line());
+        }
         auto stmt = parse_statement();
         if (stmt) body.push_back(std::move(stmt));
     }
     eat(TokenType::RBRACE);
-
+ 
     return std::make_unique<FunctionDeclNode>(name, return_type, std::move(params), std::move(body));
 }
 
 std::unique_ptr<ReturnNode> Parser::parse_return() {
-    eat(TokenType::RETURN);
+    Token ret_tok = eat(TokenType::RETURN);
     auto value = parse_expression();
+ 
+    if (current_token().get_token() != TokenType::SEMICOLON) {
+        throw MissingSemicolonException("return statement", current_token().get_line());
+    }
     eat(TokenType::SEMICOLON);
     return std::make_unique<ReturnNode>(std::move(value));
 }
 
 std::unique_ptr<CallNode> Parser::parse_call() {
-    std::string name = eat(TokenType::IDENTIFIER).get_value();
+    Token name_tok = eat(TokenType::IDENTIFIER);
+    std::string name = name_tok.get_value();
+ 
+    if (current_token().get_token() != TokenType::LPAREN) {
+        throw MissingBraceException('(', current_token().get_line());
+    }
     eat(TokenType::LPAREN);
-
+ 
     std::vector<std::unique_ptr<ASTNode>> args;
     if (current_token().get_token() != TokenType::RPAREN) {
         while (true) {
             args.push_back(parse_expression());
             if (current_token().get_token() == TokenType::COMMA) {
                 eat(TokenType::COMMA);
+                if (current_token().get_token() == TokenType::RPAREN) {
+                    throw ParseException(
+                        "Trailing comma in argument list of call to '" + name + "'",
+                        current_token().get_line());
+                }
             } else {
                 break;
             }
         }
     }
+ 
+    if (current_token().get_token() != TokenType::RPAREN) {
+        throw MissingBraceException('(', name_tok.get_line());
+    }
     eat(TokenType::RPAREN);
-
+ 
+    // Function calls used as statements need a semicolon; calls inside
+    // expressions do not. The statement-level call site (parse_statement)
+    // will eat the semicolon after parse_call() returns — nothing to do here.
+ 
     return std::make_unique<CallNode>(name, std::move(args));
 }
 
@@ -421,8 +620,11 @@ std::unique_ptr<ASTNode> Parser::parse_unary() {
 
 std::unique_ptr<ASTNode> Parser::parse_parentheses() {
     if (current_token().get_token() == TokenType::LPAREN) {
-        eat(TokenType::LPAREN);
+        Token lparen = eat(TokenType::LPAREN);
         auto node = parse_expression();
+        if (current_token().get_token() != TokenType::RPAREN) {
+            throw MissingBraceException('(', lparen.get_line());
+        }
         eat(TokenType::RPAREN);
         return node;
     }
@@ -443,13 +645,19 @@ std::unique_ptr<ASTNode> Parser::parse_term() {
 
     if (tt == TokenType::INT || tt == TokenType::STR || tt == TokenType::DOUBLE) {
         if (peek().get_token() == TokenType::LPAREN) {
-            // We treat the keyword as an identifier so parse_call can handle it
+            // Treat the keyword as an identifier so parse_call can handle it
             return parse_call_special(token.get_value()); 
         }
     }
 
     if (tt == TokenType::BOOL) {
-        return std::make_unique<BooleanNode>(eat(TokenType::BOOL));
+        Token bool_tok = eat(TokenType::BOOL);
+        if (bool_tok.get_value() != "true" && bool_tok.get_value() != "false") {
+            throw ParseException(
+                "Invalid boolean literal '" + bool_tok.get_value() + "'",
+                bool_tok.get_line());
+        }
+        return std::make_unique<BooleanNode>(bool_tok);
     }
 
     if (tt == TokenType::INPUT) {
@@ -465,23 +673,47 @@ std::unique_ptr<ASTNode> Parser::parse_term() {
 
     std::ostringstream oss;
     oss << "Expected expression, got " << to_string(tt) << " ('" << token.get_value() << "')";
-    throw ParseException(oss.str());
+    throw ParseException(oss.str(), token.get_line());
 }
 
 std::unique_ptr<ASTNode> Parser::parse_call_special(std::string name) {
-    // already have the 'name' (e.g., "int"), so just skip the token
-    pos++; 
-    
+    int tok_line = current_token().get_line();
+    pos++; // skip the type-keyword token
+ 
+    if (current_token().get_token() != TokenType::LPAREN) {
+        throw MissingBraceException('(', current_token().get_line());
+    }
     eat(TokenType::LPAREN);
+ 
     std::vector<std::unique_ptr<ASTNode>> args;
     if (current_token().get_token() != TokenType::RPAREN) {
         args.push_back(parse_expression());
         while (current_token().get_token() == TokenType::COMMA) {
             eat(TokenType::COMMA);
+            if (current_token().get_token() == TokenType::RPAREN) {
+                throw ParseException(
+                    "Trailing comma in argument list of '" + name + "()'",
+                    current_token().get_line());
+            }
             args.push_back(parse_expression());
         }
+    } else {
+        throw ParseException(
+            "Type conversion '" + name + "()' requires exactly one argument",
+            tok_line);
+    }
+ 
+    if (args.size() != 1) {
+        throw ParseException(
+            "Type conversion '" + name + "()' requires exactly one argument, got " +
+            std::to_string(args.size()),
+            tok_line);
+    }
+ 
+    if (current_token().get_token() != TokenType::RPAREN) {
+        throw MissingBraceException('(', tok_line);
     }
     eat(TokenType::RPAREN);
-
+ 
     return std::make_unique<CallNode>(name, std::move(args));
 }

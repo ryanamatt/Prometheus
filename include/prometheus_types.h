@@ -16,6 +16,7 @@
  *   std::monostate – represents the absence of a value ("None" / void return)
  */
 using PrometheusValue = std::variant<int, double, bool, std::string, std::monostate>;
+
 /**
  * @brief Enumeration of all valid token types supported by the 
     Prometheus Lexer and Parser.
@@ -119,6 +120,7 @@ inline std::string to_string(TokenType t) {
         case TokenType::EXPONENT:   return "EXPONENT";
 
         case TokenType::INCREMENT:   return "INCREMENT";
+        case TokenType::DECREMENT:   return "DECREMENT";
 
         // Comparison Operators
         case TokenType::EQUAL:      return "EQUAL";
@@ -153,21 +155,28 @@ inline std::string to_string(TokenType t) {
 
 /**
  * @brief A small container representing a single meaningful unit of code (lexemes).
+ *
+ * Carries the 1-based source line on which the token appeared so that
+ * both the parser and interpreter can include it in error messages.
  */
 class Token {
 
 private:
-    TokenType token;
+    TokenType   token;
     std::string value;
+    int         line_;   // 1-based line number; 0 = unknown
 
 public:
-    Token(TokenType token, std::string value) : token(token), value(value) {}
-    
-    TokenType get_token() { return token; }
-    std::string get_value() { return value; }
+    Token(TokenType token, std::string value, int line = 0)
+        : token(token), value(std::move(value)), line_(line) {}
+
+    TokenType   get_token() const { return token; }
+    std::string get_value() const { return value; }
+    int         get_line()  const { return line_; }
 
     void print() const {
-        std::cout << "Token(" << to_string(token) << ", '" << value << "')" << std::endl;
+        std::cout << "Token(" << to_string(token) << ", '" << value << "'"
+                  << ", line=" << line_ << ")" << std::endl;
     }
 };
 

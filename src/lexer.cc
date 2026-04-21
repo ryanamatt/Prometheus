@@ -50,7 +50,6 @@ std::vector<Token> Lexer::tokenize() {
             else if (ch == '#') {
                 while (source[current_pos] != '\n')
                     current_pos++;
-                current_line++;
             }
 
             else if (symbol_map.find(ch) != symbol_map.end()) {
@@ -64,7 +63,7 @@ std::vector<Token> Lexer::tokenize() {
 
                     case '*':
                         if (next_char == '*') {
-                            tokens.push_back(Token(TokenType::EXPONENT, "**"));
+                            tokens.push_back(Token(TokenType::EXPONENT, "**", current_line));
                             current_pos += 2;
                             matched = true;
                         }
@@ -72,7 +71,7 @@ std::vector<Token> Lexer::tokenize() {
 
                     case '>':
                         if (next_char == '=') {
-                            tokens.push_back(Token(TokenType::GREATEREQ, ">="));
+                            tokens.push_back(Token(TokenType::GREATEREQ, ">=", current_line));
                             current_pos += 2;
                             matched = true;
                         }
@@ -80,7 +79,7 @@ std::vector<Token> Lexer::tokenize() {
 
                     case '<':
                         if (next_char == '=') {
-                            tokens.push_back(Token(TokenType::LESSEREQ, "<="));
+                            tokens.push_back(Token(TokenType::LESSEREQ, "<=", current_line));
                             current_pos += 2;
                             matched = true;
                         }
@@ -88,7 +87,7 @@ std::vector<Token> Lexer::tokenize() {
 
                     case '=':
                         if (next_char == '=') {
-                            tokens.push_back(Token(TokenType::EQUAL, "=="));
+                            tokens.push_back(Token(TokenType::EQUAL, "==", current_line));
                             current_pos += 2;
                             matched = true;
                         }
@@ -96,11 +95,11 @@ std::vector<Token> Lexer::tokenize() {
                     
                     case '!':
                         if (next_char == '=') {
-                            tokens.push_back(Token(TokenType::NOTEQUAL, "!="));
+                            tokens.push_back(Token(TokenType::NOTEQUAL, "!=", current_line));
                             current_pos += 2;
                             matched = true;
                         } else {
-                            tokens.push_back(Token(TokenType::NOT, "!"));
+                            tokens.push_back(Token(TokenType::NOT, "!", current_line));
                             current_pos++;
                             matched = true;
                         }
@@ -108,7 +107,7 @@ std::vector<Token> Lexer::tokenize() {
 
                     case '&':
                         if (next_char == '&') {
-                            tokens.push_back(Token(TokenType::AND, "&&"));
+                            tokens.push_back(Token(TokenType::AND, "&&", current_line));
                             current_pos += 2;
                             matched = true;
                         }
@@ -116,7 +115,7 @@ std::vector<Token> Lexer::tokenize() {
 
                     case '|':
                         if (next_char == '|') {
-                            tokens.push_back(Token(TokenType::OR, "||"));
+                            tokens.push_back(Token(TokenType::OR, "||", current_line));
                             current_pos += 2;
                             matched = true;
                         }
@@ -124,7 +123,7 @@ std::vector<Token> Lexer::tokenize() {
 
                     case '+':
                         if (next_char == '+') {
-                            tokens.push_back(Token(TokenType::INCREMENT, "++"));
+                            tokens.push_back(Token(TokenType::INCREMENT, "++", current_line));
                             current_pos += 2;
                             matched=true;
                         }
@@ -132,7 +131,7 @@ std::vector<Token> Lexer::tokenize() {
 
                     case '-':
                         if (next_char == '-') {
-                            tokens.push_back(Token(TokenType::DECREMENT, "--"));
+                            tokens.push_back(Token(TokenType::DECREMENT, "--", current_line));
                             current_pos += 2;
                             matched=true;
                         }
@@ -140,25 +139,26 @@ std::vector<Token> Lexer::tokenize() {
                 }
                 
                 if (!matched) {
-                    tokens.push_back(Token(symbol_map[ch], std::string(1, ch)));
+                    tokens.push_back(Token(symbol_map[ch], std::string(1, ch), current_line));
                     current_pos++;
                 }
             }
 
             else {
                 // The character is not whitespace, alphanumeric, a quote, or a
-                // known symbol — throw instead of calling exit().
                 throw UnknownCharException(ch, current_line);
             }
 
         }
 
-    tokens.push_back(Token(TokenType::EOF_TOKEN, "EOF"));
+    tokens.push_back(Token(TokenType::EOF_TOKEN, "EOF", current_line));
     return tokens;
 }
 
 Token Lexer::make_identifier() {
+    int tok_line = current_line;
     std::string word;
+
     // Keep reading as long as it's alphanumeric or an underscore
     while (current_pos < (int)source.size() && (std::isalnum(source[current_pos]) || source[current_pos] == '_')) {
         word += source[current_pos];
@@ -185,15 +185,15 @@ Token Lexer::make_identifier() {
     // Check if the word exists in our keyword map
     auto it = keyword_map.find(word);
     if (it != keyword_map.end()) {
-        return Token(it->second, word);
+        return Token(it->second, word, tok_line);
     }
 
     if (word == "true" || word == "false") {
-        return Token(TokenType::BOOL, word);
+        return Token(TokenType::BOOL, word, tok_line);
     }
 
     // If not found in map, it's a standard identifier
-    return Token(TokenType::IDENTIFIER, word);
+    return Token(TokenType::IDENTIFIER, word, tok_line);
 }
 
 Token Lexer::make_number() {
@@ -228,7 +228,7 @@ Token Lexer::make_number() {
         throw InvalidNumberException(num_str, start_line);
     }
  
-    return Token(TokenType::NUMBER, num_str);
+    return Token(TokenType::NUMBER, num_str, start_line);
 }
 
 Token Lexer::make_string() {
@@ -252,5 +252,5 @@ Token Lexer::make_string() {
     }
  
     current_pos++; // consume closing '"'
-    return Token(TokenType::STRING, string_val);
+    return Token(TokenType::STRING, string_val, start_line);
 }
