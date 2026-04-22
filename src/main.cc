@@ -13,11 +13,40 @@
 #include "dot_visitor.h"
 #endif
 
+void runREPL() {
+    std::string line;
+
+    std::unordered_map<std::string, PrometheusValue> globalVariables;
+
+    std::cout << "Prometheus REPL" << std::endl;
+    std::cout << "Type 'exit' to quit." << std::endl;
+
+    while (true) {
+        std::cout << ">>> ";
+        if (!std::getline(std::cin, line) || line == "exit") break;
+        if (line.empty()) continue;
+
+        try {
+            Lexer lexer(line);
+            std::vector<Token> tokens = lexer.tokenize();
+
+            Parser parser(tokens);
+            std::vector<std::unique_ptr<ASTNode>> nodes = parser.parse();
+
+            Interpreter interpreter(std::move(nodes), globalVariables);
+            globalVariables = interpreter.interpret();
+        }
+
+        catch (const std::exception& e) {
+            std::cerr << "Error: " << e.what() << std::endl;
+        }
+    }
+}
+
 int main (int argc, char* argv[])
 {
     if (argc < 2) {
-        std::cout << "Prometheus Requires a File to Run. ./prometheus [filename]" << std::endl;
-        return 1;
+        runREPL();
     }
     std::string filename = argv[1];
 #ifdef DEBUG
