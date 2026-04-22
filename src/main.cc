@@ -18,8 +18,7 @@ void runREPL() {
 
     std::unordered_map<std::string, PrometheusValue> globalVariables;
 
-    std::cout << "Prometheus REPL" << std::endl;
-    std::cout << "Type 'exit' to quit." << std::endl;
+    std::cout << "Prometheus REPL — type 'exit' to quit." << std::endl << std::endl;
 
     while (true) {
         std::cout << ">>> ";
@@ -33,7 +32,7 @@ void runREPL() {
             Parser parser(tokens);
             std::vector<std::unique_ptr<ASTNode>> nodes = parser.parse();
 
-            Interpreter interpreter(std::move(nodes), globalVariables);
+            Interpreter interpreter(nodes, globalVariables);
             globalVariables = interpreter.interpret();
         }
 
@@ -47,6 +46,7 @@ int main (int argc, char* argv[])
 {
     if (argc < 2) {
         runREPL();
+        return 0;
     }
     std::string filename = argv[1];
 #ifdef DEBUG
@@ -122,7 +122,7 @@ int main (int argc, char* argv[])
         // ----------------------------------------------------------------
         // Interpret
         // ----------------------------------------------------------------
-        Interpreter interpreter(std::move(nodes));
+        Interpreter interpreter(nodes);
         std::unordered_map<std::string, PrometheusValue> variables = interpreter.interpret();
 
 #ifdef DEBUG

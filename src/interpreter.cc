@@ -3,11 +3,69 @@
 #include "exceptions.h"
 #include "interpreter.h"
 
+Interpreter::Interpreter(const std::vector<std::unique_ptr<ASTNode>>& nodes,
+                         std::unordered_map<std::string, PrometheusValue> global_vars)
+    : nodes(&nodes)
+{
+    // The global scope is always present at index 0.
+    scope_stack.push_back(std::move(global_vars));
+}
+
+
+void Interpreter::push_scope() {
+    scope_stack.push_back({});
+}
+
+void Interpreter::pop_scope() {
+    if (scope_stack.size() > 1)   // never pop the global scope
+        scope_stack.pop_back();
+}
+
+PrometheusValue Interpreter::get_var(const std::string& name, int line) const {
+    // Walk from innermost scope outward
+    for (auto it = scope_stack.rbegin(); it != scope_stack.rend(); ++it) {
+        auto found = it->find(name);
+        if (found != it->end())
+            return found->second;
+    }
+    throw UndefinedVariableException(name, line);
+}
+
+void Interpreter::set_var(const std::string& name, PrometheusValue value) {
+    // Update the innermost scope that already has a binding for this name
+    for (auto it = scope_stack.rbegin(); it != scope_stack.rend(); ++it) {
+        auto found = it->find(name);
+        if (found != it->end()) {
+            found->second = std::move(value);
+            return;
+        }
+    }
+    // No existing binding — create one in the current (innermost) scope
+    scope_stack.back()[name] = std::move(value);
+}
+
+void Interpreter::declare_var(const std::string& name, PrometheusValue value) {
+    // Always create a fresh binding in the current scope, even if an outer
+    // scope already has one (shadowing).
+    scope_stack.back()[name] = std::move(value);
+}
+
+bool Interpreter::has_var(const std::string& name) const {
+    for (auto it = scope_stack.rbegin(); it != scope_stack.rend(); ++it) {
+        if (it->count(name)) return true;
+    }
+    return false;
+}
+
+// ============================================================================
+// interpret
+// ============================================================================
+
 std::unordered_map<std::string, PrometheusValue> Interpreter::interpret() {
     for (auto& node : *nodes) {
         visit(node.get());
     }
-    return variables;
+    return scope_stack.front();   // return the global scope
 }
 
 // ============================================================================
@@ -145,11 +203,7 @@ PrometheusValue Interpreter::visit(ASTNode* node) {
     // ------------------------------------------------------------------
 
     else if (VarNode* n = dynamic_cast<VarNode*>(node)) {
-        auto it = variables.find(n->value);
-        if (it == variables.end()) {
-            throw UndefinedVariableException(n->value, n->token.get_line());
-        }
-        return it->second;
+        return get_var(n->value, n->token.get_line());
     }
 
     // ------------------------------------------------------------------
@@ -253,21 +307,18 @@ PrometheusValue Interpreter::visit(ASTNode* node) {
  
     else if (VarDeclNode* n = dynamic_cast<VarDeclNode*>(node)) {
         PrometheusValue value = visit(n->value_node.get());
- 
-        // Type-check only for typed declarations (var_type != name means it
-        // was a typed decl; otherwise it was a bare re-assignment).
+
         if (n->var_type != n->name) {
-            // Re-assignment to an existing variable: check that new value
-            // matches its stored type.
-            auto it = variables.find(n->name);
-            if (it != variables.end()) {
-                // If we can determine the "declared" type from the stored
-                // value we enforce it; for re-assignments we simply store.
-            }
+            // Typed declaration (e.g. `int x = 5;`) — coerce and create a
+            // fresh binding in the current scope, possibly shadowing an outer one.
             value = coerce_to_declared(n->var_type, n->name, value);
+            declare_var(n->name, value);
+        } else {
+            // Bare re-assignment (e.g. `x = 5;`) — update the nearest
+            // existing binding, or create one in the current scope if new.
+            set_var(n->name, value);
         }
- 
-        variables[n->name] = value;
+
         return value;
     }
 
@@ -276,27 +327,25 @@ PrometheusValue Interpreter::visit(ASTNode* node) {
     // ------------------------------------------------------------------
  
     else if (IncrementDecrementNode* n = dynamic_cast<IncrementDecrementNode*>(node)) {
-        auto it = variables.find(n->name);
-        if (it == variables.end()) {
+        if (!has_var(n->name)) {
             throw UndefinedVariableException(n->name);
         }
- 
-        if (!std::holds_alternative<int>(it->second) &&
-            !std::holds_alternative<double>(it->second)) {
+
+        PrometheusValue current = get_var(n->name);
+
+        if (!std::holds_alternative<int>(current) &&
+            !std::holds_alternative<double>(current)) {
             throw TypeException(
                 "Increment/decrement requires a numeric variable, but '" +
-                n->name + "' is of type '" + type_name(it->second) + "'");
+                n->name + "' is of type '" + type_name(current) + "'");
         }
- 
-        double current_val = get_double(it->second);
-        double new_val = current_val + n->inc_val;
- 
-        if (std::holds_alternative<int>(it->second)) {
-            variables[n->name] = static_cast<int>(new_val);
-        } else {
-            variables[n->name] = new_val;
-        }
-        return variables[n->name];
+
+        double new_val = get_double(current) + n->inc_val;
+        PrometheusValue updated = std::holds_alternative<int>(current)
+                                  ? PrometheusValue{static_cast<int>(new_val)}
+                                  : PrometheusValue{new_val};
+        set_var(n->name, updated);
+        return updated;
     }
 
     // ------------------------------------------------------------------
@@ -340,21 +389,29 @@ PrometheusValue Interpreter::visit(ASTNode* node) {
  
     else if (IfNode* n = dynamic_cast<IfNode*>(node)) {
         if (get_bool(visit(n->condition.get()))) {
+            push_scope();
             for (auto& stmt : n->then_branch)
                 visit(stmt.get());
+            pop_scope();
             return std::monostate{};
         }
- 
+
         for (auto& [condition, branch] : n->elif_branches) {
             if (get_bool(visit(condition.get()))) {
+                push_scope();
                 for (auto& stmt : branch)
                     visit(stmt.get());
+                pop_scope();
                 return std::monostate{};
             }
         }
- 
-        for (auto& stmt : n->else_branch)
-            visit(stmt.get());
+
+        if (!n->else_branch.empty()) {
+            push_scope();
+            for (auto& stmt : n->else_branch)
+                visit(stmt.get());
+            pop_scope();
+        }
         return std::monostate{};
     }
 
@@ -364,8 +421,10 @@ PrometheusValue Interpreter::visit(ASTNode* node) {
  
     else if (WhileNode* n = dynamic_cast<WhileNode*>(node)) {
         while (get_bool(visit(n->condition.get()))) {
+            push_scope();
             for (auto& stmt : n->do_branch)
                 visit(stmt.get());
+            pop_scope();
         }
         return std::monostate{};
     }
@@ -375,12 +434,18 @@ PrometheusValue Interpreter::visit(ASTNode* node) {
     // ------------------------------------------------------------------
  
     else if (ForNode* n = dynamic_cast<ForNode*>(node)) {
+        // The loop variable (e.g. `int i = 0`) lives in its own scope that
+        // wraps the entire for loop — it is not visible after the loop ends.
+        push_scope();
         visit(n->variable.get());
         while (get_bool(visit(n->condition.get()))) {
+            push_scope();
             for (auto& stmt : n->do_branch)
                 visit(stmt.get());
+            pop_scope();
             visit(n->change_var.get());
         }
+        pop_scope();   // discard the loop variable
         return std::monostate{};
     }
 
@@ -463,42 +528,43 @@ PrometheusValue Interpreter::visit(ASTNode* node) {
             return get_bool(val);
         }
  
-        // ---- User-defined functions ------------------------------------
- 
+        // --- User-defined functions ---
+
         if (functions.find(n->name) == functions.end()) {
             throw UndefinedFunctionException(n->name);
         }
- 
+
         FunctionDeclNode* func_node = functions[n->name];
- 
+
         if (n->args.size() != func_node->params.size()) {
             throw ArgumentCountException(n->name,
                                          (int)func_node->params.size(),
                                          (int)n->args.size());
         }
- 
+
+        // Evaluate all arguments in the *caller's* scope before switching context.
         std::vector<PrometheusValue> arg_values;
         arg_values.reserve(n->args.size());
         for (auto& arg : n->args)
             arg_values.push_back(visit(arg.get()));
- 
-        // Build local interpreter with a copy of the current variable scope
-        // so that closures can read outer variables.
-        Interpreter local_interpreter(func_node->body, variables);
-        local_interpreter.functions = functions;
- 
-        // Bind arguments to parameter names (with type coercion)
+
+        // Build a fresh interpreter with only a blank global scope.
+        // Functions do not close over the caller's locals — they only see
+        // their own parameters.
+        Interpreter local_interp(func_node->body);
+        local_interp.functions = functions;   // share the function table
+
+        // Bind arguments to parameter names in the local scope.
         for (size_t i = 0; i < arg_values.size(); i++) {
             const std::string& p_type = func_node->params[i].first;
             const std::string& p_name = func_node->params[i].second;
-            local_interpreter.variables[p_name] =
-                coerce_to_declared(p_type, p_name, arg_values[i]);
+            local_interp.declare_var(p_name,
+                coerce_to_declared(p_type, p_name, arg_values[i]));
         }
- 
+
         try {
-            for (auto& stmt : func_node->body) {
-                local_interpreter.visit(stmt.get());
-            }
+            for (auto& stmt : func_node->body)
+                local_interp.visit(stmt.get());
         } catch (const ReturnException& e) {
             return e.value;
         }
