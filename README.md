@@ -93,7 +93,7 @@ for (int i = 1; i < 101; i++;) {
 
 ### **Launguage Specifications**
 
-For full language specifications see [Language Specifications Markdown File](LANGUAGE_SPECIFICATIONS)
+For full language specifications see [Language Specifications Markdown File](docs/LANGUAGE_SPECIFICATIONS.md)
 
 ## **Technical Architecture**
 
@@ -127,4 +127,4 @@ Prometheus includes custom exception handling for:
 
 ## ROADMAP
 
-See *[Roadmap Markdown File](ROADMAP.md)* for the full ROADMAP of things planned on being added.
+See *[Roadmap Markdown File](docs/ROADMAP.md)* for the full ROADMAP of things planned on being added.
