@@ -1,12 +1,10 @@
+---
 name: Bug Report
-
 about: Create a report to help us improve Prometheus
-
 title: '\[BUG\] '
-
 labels: bug
-
 assignees: ''
+---
 
 ## **Bug Description**
 
