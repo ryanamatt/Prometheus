@@ -385,6 +385,7 @@ std::unique_ptr<FunctionDeclNode> Parser::parse_func() {
     Token return_type_tok = eat(rtt);
     std::string return_type = return_type_tok.get_value();
  
+    // Get Name of Function
     if (current_token().get_token() != TokenType::IDENTIFIER) {
         throw ParseException(
             "Expected function name after return type '" + return_type + "'",
@@ -397,6 +398,7 @@ std::unique_ptr<FunctionDeclNode> Parser::parse_func() {
     }
     eat(TokenType::LPAREN);
  
+    // Get Parameters of Function
     std::vector<std::pair<std::string, std::string>> params;
     std::unordered_set<std::string> seen_params;
  
@@ -443,7 +445,7 @@ std::unique_ptr<FunctionDeclNode> Parser::parse_func() {
         }
     }
 
-    // Check rest of func logig ) { body }
+    // Check rest of func logic ->  ) { body }
  
     if (current_token().get_token() != TokenType::RPAREN) {
         throw MissingBraceException('(', func_tok.get_line());
