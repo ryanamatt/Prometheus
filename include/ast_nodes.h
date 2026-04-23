@@ -184,7 +184,7 @@ public:
 };
 
 /**
- * Represents a return statement
+ * Represents a return statement. Can Return nullptr if not return in Function.
  */
 class ReturnNode : public ASTNode {
 public:

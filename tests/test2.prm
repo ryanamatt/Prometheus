@@ -8,3 +8,11 @@ print(s);
 s = "Hello World";
 
 print(s);
+
+func void printHello(int n) {
+    for (int i = 0; i < n; i++;) {
+        print("Hello");
+    }
+}
+
+printHello(5);

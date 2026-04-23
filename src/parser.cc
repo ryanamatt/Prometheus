@@ -375,7 +375,14 @@ std::unique_ptr<FunctionDeclNode> Parser::parse_func() {
     Token func_tok = eat(TokenType::FUNC);
  
     // Return type: any type keyword or identifier
-    Token return_type_tok = eat(current_token().get_token());
+    TokenType rtt = current_token().get_token();
+    if (rtt != TokenType::INT && rtt != TokenType::STR && rtt != TokenType::DOUBLE &&
+        rtt != TokenType::BOOL && rtt != TokenType::VOID && rtt != TokenType::IDENTIFIER) {
+        throw ParseException(
+            "Expected return type after 'func', got '" + current_token().get_value() + "'",
+            current_token().get_line());
+    }
+    Token return_type_tok = eat(rtt);
     std::string return_type = return_type_tok.get_value();
  
     if (current_token().get_token() != TokenType::IDENTIFIER) {
@@ -435,6 +442,8 @@ std::unique_ptr<FunctionDeclNode> Parser::parse_func() {
             }
         }
     }
+
+    // Check rest of func logig ) { body }
  
     if (current_token().get_token() != TokenType::RPAREN) {
         throw MissingBraceException('(', func_tok.get_line());
@@ -460,8 +469,15 @@ std::unique_ptr<FunctionDeclNode> Parser::parse_func() {
 
 std::unique_ptr<ReturnNode> Parser::parse_return() {
     Token ret_tok = eat(TokenType::RETURN);
+
+    // Bare `return;` — valid in void functions
+    if (current_token().get_token() == TokenType::SEMICOLON) {
+        eat(TokenType::SEMICOLON);
+        return std::make_unique<ReturnNode>(nullptr);
+    }
+
     auto value = parse_expression();
- 
+
     if (current_token().get_token() != TokenType::SEMICOLON) {
         throw MissingSemicolonException("return statement", current_token().get_line());
     }

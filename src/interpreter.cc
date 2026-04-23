@@ -466,7 +466,7 @@ PrometheusValue Interpreter::visit(ASTNode* node) {
     // ------------------------------------------------------------------
  
     else if (ReturnNode* n = dynamic_cast<ReturnNode*>(node)) {
-        PrometheusValue value = visit(n->value_node.get());
+        PrometheusValue value = n->value_node ? visit(n->value_node.get()) : std::monostate{};
         throw ReturnException{value};
     }
 

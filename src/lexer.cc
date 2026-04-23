@@ -171,6 +171,7 @@ Token Lexer::make_identifier() {
         {"str",    TokenType::STR},
         {"double", TokenType::DOUBLE},
         {"bool",   TokenType::BOOL},
+        {"void",   TokenType::VOID},
         {"if",     TokenType::IF},
         {"elif",   TokenType::ELIF},
         {"else",   TokenType::ELSE},
