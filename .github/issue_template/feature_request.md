@@ -1,3 +1,4 @@
+---
 name: Feature Request
 
 about: Suggest an idea or new language feature for Prometheus
@@ -7,6 +8,7 @@ title: '\[PROP\] '
 labels: enhancement, language-design
 
 assignees: ''
+---
 
 ## **Feature Proposal**
 
