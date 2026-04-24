@@ -1,4 +1,3 @@
-
 #include <unordered_map>
 #include <cctype>
 #include <iostream>
@@ -21,6 +20,9 @@ std::vector<Token> Lexer::tokenize() {
             {')', TokenType::RPAREN},
             {'{', TokenType::LBRACE},
             {'}', TokenType::RBRACE},
+            {'[', TokenType::LBRACKET},
+            {']', TokenType::RBRACKET},
+            {'.', TokenType::DOT},
             {';', TokenType::SEMICOLON},
             {',', TokenType::COMMA}
         };
@@ -172,6 +174,7 @@ Token Lexer::make_identifier() {
         {"double", TokenType::DOUBLE},
         {"bool",   TokenType::BOOL},
         {"void",   TokenType::VOID},
+        {"list",   TokenType::LIST},
         {"if",     TokenType::IF},
         {"elif",   TokenType::ELIF},
         {"else",   TokenType::ELSE},

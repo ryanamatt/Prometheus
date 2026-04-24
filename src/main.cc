@@ -48,7 +48,7 @@ int main (int argc, char* argv[])
         runREPL();
         return 0;
     }
-    
+
     std::string filename = argv[1];
 #ifdef DEBUG
     std::cout << "Filename: " << filename << std::endl;

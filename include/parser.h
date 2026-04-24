@@ -57,6 +57,11 @@ private:
      */
     std::unique_ptr<ASTNode> parse_declaration();
 
+    /**
+     * @brief Parses a list declaration: list[int] nums = [1, 2, 3];
+     */
+    std::unique_ptr<ListDeclNode> parse_list_decl();
+
     /** 
      * @brief Parses a bare identifier assignment: `x = <expr>;`
      */

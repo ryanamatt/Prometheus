@@ -63,6 +63,10 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
         return parse_declaration();
     }
 
+    if (tt == TokenType::LIST) {
+        return parse_list_decl();
+    }
+
     if (tt == TokenType::IDENTIFIER) {
         if (peek().get_token() == TokenType::INCREMENT) {
             Token id = eat(TokenType::IDENTIFIER);
@@ -80,6 +84,70 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
                 throw MissingSemicolonException("'--", current_token().get_line());
             eat(TokenType::SEMICOLON);
             return std::make_unique<IncrementDecrementNode>(id.get_value(), -1.0);
+        }
+
+        // name[index] = value;
+        else if (peek().get_token() == TokenType::LBRACKET) {
+            Token id = eat(TokenType::IDENTIFIER);
+            eat(TokenType::LBRACKET);
+            auto index = parse_expression();
+            if (current_token().get_token() != TokenType::RBRACKET)
+                throw MissingBraceException('[', id.get_line());
+            eat(TokenType::RBRACKET);
+            if (current_token().get_token() != TokenType::ASSIGN) {
+                throw ParseException(
+                    "Expected '=' after list index expression for '" + id.get_value() + "'",
+                    current_token().get_line());
+            }
+            eat(TokenType::ASSIGN);
+            auto value = parse_expression();
+            if (current_token().get_token() != TokenType::SEMICOLON)
+                throw MissingSemicolonException("list index assignment", current_token().get_line());
+            eat(TokenType::SEMICOLON);
+            return std::make_unique<ListAssignNode>(id.get_value(), std::move(index), std::move(value));
+        }
+
+        // name.append(expr); or name.len();
+        else if (peek().get_token() == TokenType::DOT) {
+            Token id = eat(TokenType::IDENTIFIER);
+            eat(TokenType::DOT);
+            if (current_token().get_token() != TokenType::IDENTIFIER) {
+                throw ParseException(
+                    "Expected method name after '.' on '" + id.get_value() + "'",
+                    current_token().get_line());
+            }
+            std::string method = eat(TokenType::IDENTIFIER).get_value();
+
+            if (method == "append") {
+                if (current_token().get_token() != TokenType::LPAREN)
+                    throw MissingBraceException('(', current_token().get_line());
+                eat(TokenType::LPAREN);
+                auto val = parse_expression();
+                if (current_token().get_token() != TokenType::RPAREN)
+                    throw MissingBraceException('(', id.get_line());
+                eat(TokenType::RPAREN);
+                if (current_token().get_token() != TokenType::SEMICOLON)
+                    throw MissingSemicolonException("append()", current_token().get_line());
+                eat(TokenType::SEMICOLON);
+                return std::make_unique<ListAppendNode>(id.get_value(), std::move(val));
+            }
+
+            if (method == "len") {
+                if (current_token().get_token() != TokenType::LPAREN)
+                    throw MissingBraceException('(', current_token().get_line());
+                eat(TokenType::LPAREN);
+                if (current_token().get_token() != TokenType::RPAREN)
+                    throw MissingBraceException('(', id.get_line());
+                eat(TokenType::RPAREN);
+                if (current_token().get_token() != TokenType::SEMICOLON)
+                    throw MissingSemicolonException("len()", current_token().get_line());
+                eat(TokenType::SEMICOLON);
+                return std::make_unique<ListLengthNode>(id.get_value());
+            }
+
+            throw ParseException(
+                "Unknown method '" + method + "' on '" + id.get_value() + "'",
+                current_token().get_line());
         }
 
         else if (peek().get_token() == TokenType::LPAREN) {
@@ -143,6 +211,54 @@ std::unique_ptr<ASTNode> Parser::parse_declaration() {
     
     eat(TokenType::SEMICOLON);
     return std::make_unique<VarDeclNode>(type_token.get_value(), name_token.get_value(), std::move(value_node));
+}
+
+std::unique_ptr<ListDeclNode> Parser::parse_list_decl() {
+    Token list_tok = eat(TokenType::LIST);
+
+    // list[element_type]
+    if (current_token().get_token() != TokenType::LBRACKET)
+        throw MissingBraceException('[', list_tok.get_line());
+    eat(TokenType::LBRACKET);
+
+    TokenType et = current_token().get_token();
+    if (et != TokenType::INT && et != TokenType::STR &&
+        et != TokenType::DOUBLE && et != TokenType::BOOL) {
+        throw ParseException(
+            "Expected element type (int, double, str, bool) inside list[...], got '" +
+            current_token().get_value() + "'",
+            current_token().get_line());
+    }
+    std::string element_type = eat(et).get_value();
+
+    if (current_token().get_token() != TokenType::RBRACKET)
+        throw MissingBraceException('[', list_tok.get_line());
+    eat(TokenType::RBRACKET);
+
+    // variable name
+    if (current_token().get_token() != TokenType::IDENTIFIER) {
+        throw ParseException(
+            "Expected variable name after list[" + element_type + "]",
+            current_token().get_line());
+    }
+    std::string name = eat(TokenType::IDENTIFIER).get_value();
+
+    // optional initialiser (defaults to empty list)
+    std::unique_ptr<ASTNode> value_node;
+    if (current_token().get_token() == TokenType::ASSIGN) {
+        eat(TokenType::ASSIGN);
+        value_node = parse_expression(); // should parse a ListLiteralNode
+    } else {
+        // default: empty list literal
+        value_node = std::make_unique<ListLiteralNode>(
+            std::vector<std::unique_ptr<ASTNode>>{});
+    }
+
+    if (current_token().get_token() != TokenType::SEMICOLON)
+        throw MissingSemicolonException("list declaration of '" + name + "'",
+                                        current_token().get_line());
+    eat(TokenType::SEMICOLON);
+    return std::make_unique<ListDeclNode>(element_type, name, std::move(value_node));
 }
 
 std::unique_ptr<ASTNode> Parser::parse_identifier() {
@@ -374,7 +490,7 @@ std::unique_ptr<ForNode> Parser::parse_for() {
 std::unique_ptr<FunctionDeclNode> Parser::parse_func() {
     Token func_tok = eat(TokenType::FUNC);
  
-    // Return type: any type keyword or identifier
+    // Return type: any type keyword or identifier (including void)
     TokenType rtt = current_token().get_token();
     if (rtt != TokenType::INT && rtt != TokenType::STR && rtt != TokenType::DOUBLE &&
         rtt != TokenType::BOOL && rtt != TokenType::VOID && rtt != TokenType::IDENTIFIER) {
@@ -385,7 +501,6 @@ std::unique_ptr<FunctionDeclNode> Parser::parse_func() {
     Token return_type_tok = eat(rtt);
     std::string return_type = return_type_tok.get_value();
  
-    // Get Name of Function
     if (current_token().get_token() != TokenType::IDENTIFIER) {
         throw ParseException(
             "Expected function name after return type '" + return_type + "'",
@@ -398,7 +513,6 @@ std::unique_ptr<FunctionDeclNode> Parser::parse_func() {
     }
     eat(TokenType::LPAREN);
  
-    // Get Parameters of Function
     std::vector<std::pair<std::string, std::string>> params;
     std::unordered_set<std::string> seen_params;
  
@@ -444,8 +558,6 @@ std::unique_ptr<FunctionDeclNode> Parser::parse_func() {
             }
         }
     }
-
-    // Check rest of func logic ->  ) { body }
  
     if (current_token().get_token() != TokenType::RPAREN) {
         throw MissingBraceException('(', func_tok.get_line());
@@ -661,6 +773,25 @@ std::unique_ptr<ASTNode> Parser::parse_term() {
         return std::make_unique<StringNode>(eat(TokenType::STRING));
     }
 
+    // List literal: [expr, expr, ...]
+    if (tt == TokenType::LBRACKET) {
+        Token lb = eat(TokenType::LBRACKET);
+        std::vector<std::unique_ptr<ASTNode>> elems;
+        if (current_token().get_token() != TokenType::RBRACKET) {
+            elems.push_back(parse_expression());
+            while (current_token().get_token() == TokenType::COMMA) {
+                eat(TokenType::COMMA);
+                if (current_token().get_token() == TokenType::RBRACKET)
+                    throw ParseException("Trailing comma in list literal", current_token().get_line());
+                elems.push_back(parse_expression());
+            }
+        }
+        if (current_token().get_token() != TokenType::RBRACKET)
+            throw MissingBraceException('[', lb.get_line());
+        eat(TokenType::RBRACKET);
+        return std::make_unique<ListLiteralNode>(std::move(elems));
+    }
+
     if (tt == TokenType::INT || tt == TokenType::STR || tt == TokenType::DOUBLE) {
         if (peek().get_token() == TokenType::LPAREN) {
             // Treat the keyword as an identifier so parse_call can handle it
@@ -685,6 +816,36 @@ std::unique_ptr<ASTNode> Parser::parse_term() {
     if (tt == TokenType::IDENTIFIER) {
         if (peek().get_token() == TokenType::LPAREN) {
             return parse_call();
+        }
+        // name[index] — index read as an expression
+        if (peek().get_token() == TokenType::LBRACKET) {
+            Token id = eat(TokenType::IDENTIFIER);
+            eat(TokenType::LBRACKET);
+            auto index = parse_expression();
+            if (current_token().get_token() != TokenType::RBRACKET)
+                throw MissingBraceException('[', id.get_line());
+            eat(TokenType::RBRACKET);
+            return std::make_unique<ListIndexNode>(id.get_value(), std::move(index));
+        }
+        // name.len() as an expression (e.g. used in conditions)
+        if (peek().get_token() == TokenType::DOT) {
+            Token id = eat(TokenType::IDENTIFIER);
+            eat(TokenType::DOT);
+            if (current_token().get_token() != TokenType::IDENTIFIER)
+                throw ParseException("Expected method name after '.'", current_token().get_line());
+            std::string method = eat(TokenType::IDENTIFIER).get_value();
+            if (method == "len") {
+                if (current_token().get_token() != TokenType::LPAREN)
+                    throw MissingBraceException('(', id.get_line());
+                eat(TokenType::LPAREN);
+                if (current_token().get_token() != TokenType::RPAREN)
+                    throw MissingBraceException('(', id.get_line());
+                eat(TokenType::RPAREN);
+                return std::make_unique<ListLengthNode>(id.get_value());
+            }
+            throw ParseException(
+                "Unknown expression method '" + method + "' on '" + id.get_value() + "'",
+                current_token().get_line());
         }
         return std::make_unique<VarNode>(eat(TokenType::IDENTIFIER));
     }
