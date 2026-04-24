@@ -184,11 +184,11 @@ public:
 };
 
 /**
- * Represents a return statement. Can Return nullptr if not return in Function.
+ * Represents a return statement. value_node may be nullptr for void returns.
  */
 class ReturnNode : public ASTNode {
 public:
-    std::unique_ptr<ASTNode> value_node;
+    std::unique_ptr<ASTNode> value_node; // nullptr for bare `return;`
 
     ReturnNode(std::unique_ptr<ASTNode> value_node) : value_node(std::move(value_node)) {}
 };
@@ -203,6 +203,80 @@ public:
 
     CallNode(std::string name, std::vector<std::unique_ptr<ASTNode>> args)
         : name(name), args(std::move(args)) {}
+};
+
+/**
+ * Represents a list literal, e.g. [1, 2, 3]
+ */
+class ListLiteralNode : public ASTNode {
+public:
+    std::vector<std::unique_ptr<ASTNode>> elements;
+
+    ListLiteralNode(std::vector<std::unique_ptr<ASTNode>> elements)
+        : elements(std::move(elements)) {}
+};
+
+/**
+ * Represents a typed list declaration, e.g. list[int] nums = [1, 2, 3];
+ */
+class ListDeclNode : public ASTNode {
+public:
+    std::string element_type;   // "int", "double", "str", "bool"
+    std::string name;
+    std::unique_ptr<ASTNode> value_node; // ListLiteralNode or VarNode
+
+    ListDeclNode(std::string element_type, std::string name,
+                 std::unique_ptr<ASTNode> value_node)
+        : element_type(std::move(element_type)), name(std::move(name)),
+          value_node(std::move(value_node)) {}
+};
+
+/**
+ * Represents an index read: name[expr]
+ */
+class ListIndexNode : public ASTNode {
+public:
+    std::string name;
+    std::unique_ptr<ASTNode> index;
+
+    ListIndexNode(std::string name, std::unique_ptr<ASTNode> index)
+        : name(std::move(name)), index(std::move(index)) {}
+};
+
+/**
+ * Represents an index assignment: name[expr] = expr;
+ */
+class ListAssignNode : public ASTNode {
+public:
+    std::string name;
+    std::unique_ptr<ASTNode> index;
+    std::unique_ptr<ASTNode> value;
+
+    ListAssignNode(std::string name, std::unique_ptr<ASTNode> index,
+                   std::unique_ptr<ASTNode> value)
+        : name(std::move(name)), index(std::move(index)), value(std::move(value)) {}
+};
+
+/**
+ * Represents name.append(expr);
+ */
+class ListAppendNode : public ASTNode {
+public:
+    std::string name;
+    std::unique_ptr<ASTNode> value;
+
+    ListAppendNode(std::string name, std::unique_ptr<ASTNode> value)
+        : name(std::move(name)), value(std::move(value)) {}
+};
+
+/**
+ * Represents name.len() — evaluates to int
+ */
+class ListLengthNode : public ASTNode {
+public:
+    std::string name;
+
+    ListLengthNode(std::string name) : name(std::move(name)) {}
 };
 
 /**

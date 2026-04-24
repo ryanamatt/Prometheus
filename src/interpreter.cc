@@ -77,10 +77,14 @@ std::unordered_map<std::string, PrometheusValue> Interpreter::interpret() {
  *        Used for user-facing type mismatch messages.
  */
 static std::string type_name(const PrometheusValue& v) {
-    if (std::holds_alternative<int>(v))          return "int";
-    if (std::holds_alternative<double>(v))       return "double";
-    if (std::holds_alternative<bool>(v))         return "bool";
-    if (std::holds_alternative<std::string>(v))  return "str";
+    if (std::holds_alternative<int>(v))               return "int";
+    if (std::holds_alternative<double>(v))            return "double";
+    if (std::holds_alternative<bool>(v))              return "bool";
+    if (std::holds_alternative<std::string>(v))       return "str";
+    if (std::holds_alternative<PrometheusListPtr>(v)) {
+        const auto& lst = std::get<PrometheusListPtr>(v);
+        return "list[" + (lst ? lst->element_type : "?") + "]";
+    }
     return "None";
 }
  
@@ -127,6 +131,21 @@ static std::string value_to_string(const PrometheusValue& value) {
     }
     if (auto* s = std::get_if<std::string>(&value)) return *s;
     if (auto* b = std::get_if<bool>(&value))        return *b ? "true" : "false";
+    if (auto* lp = std::get_if<PrometheusListPtr>(&value)) {
+        if (!*lp) return "[]";
+        std::string out = "[";
+        const auto& elems = (*lp)->elements;
+        for (size_t i = 0; i < elems.size(); ++i) {
+            if (i > 0) out += ", ";
+            // Wrap strings in quotes for display
+            if (std::holds_alternative<std::string>(elems[i]))
+                out += "\"" + std::get<std::string>(elems[i]) + "\"";
+            else
+                out += value_to_string(elems[i]);
+        }
+        out += "]";
+        return out;
+    }
     return "None"; // std::monostate
 }
  
@@ -163,6 +182,16 @@ static PrometheusValue coerce_to_declared(const std::string& decl_type,
     }
     // Unknown / user-defined type → pass through without coercion
     return value;
+}
+
+/**
+ * @brief Coerces a value to fit a list's element type, or throws TypeMismatchException.
+ */
+static PrometheusValue coerce_to_element(const std::string& elem_type,
+                                          const PrometheusValue& value,
+                                          int line = 0) {
+    // Re-use the existing scalar coercion with a synthetic var name for the message.
+    return coerce_to_declared(elem_type, "<list element>", value, line);
 }
 
 // ============================================================================
@@ -568,6 +597,116 @@ PrometheusValue Interpreter::visit(ASTNode* node) {
         } catch (const ReturnException& e) {
             return e.value;
         }
+    }
+
+    // ------------------------------------------------------------------
+    // List literal  [expr, expr, ...]
+    // ------------------------------------------------------------------
+
+    else if (ListLiteralNode* n = dynamic_cast<ListLiteralNode*>(node)) {
+        // A bare literal has no declared element type yet — the element type
+        // is stamped in by ListDeclNode. Return a typeless list here; the
+        // caller (ListDeclNode) will validate and re-tag it.
+        auto lst = std::make_shared<PrometheusList>();
+        lst->element_type = "";  // will be set by ListDeclNode
+        for (auto& elem : n->elements)
+            lst->elements.push_back(visit(elem.get()));
+        return lst;
+    }
+
+    // ------------------------------------------------------------------
+    // List declaration   list[type] name = [...];
+    // ------------------------------------------------------------------
+
+    else if (ListDeclNode* n = dynamic_cast<ListDeclNode*>(node)) {
+        PrometheusValue raw = visit(n->value_node.get());
+
+        PrometheusListPtr lst;
+        if (std::holds_alternative<PrometheusListPtr>(raw)) {
+            lst = std::get<PrometheusListPtr>(raw);
+        } else {
+            throw TypeException(
+                "Expected a list literal for declaration of '" + n->name + "'");
+        }
+
+        // Stamp the declared element type and coerce every initial element.
+        lst->element_type = n->element_type;
+        for (auto& elem : lst->elements)
+            elem = coerce_to_element(n->element_type, elem);
+
+        declare_var(n->name, lst);
+        return lst;
+    }
+
+    // ------------------------------------------------------------------
+    // List index read   name[index]
+    // ------------------------------------------------------------------
+
+    else if (ListIndexNode* n = dynamic_cast<ListIndexNode*>(node)) {
+        PrometheusValue var = get_var(n->name);
+        if (!std::holds_alternative<PrometheusListPtr>(var))
+            throw TypeException("'" + n->name + "' is not a list");
+
+        PrometheusListPtr lst = std::get<PrometheusListPtr>(var);
+        int idx = get_int(visit(n->index.get()));
+
+        if (idx < 0 || idx >= (int)lst->elements.size()) {
+            throw RuntimeException(
+                "Index " + std::to_string(idx) + " out of bounds for list '" +
+                n->name + "' (size " + std::to_string(lst->elements.size()) + ")");
+        }
+        return lst->elements[idx];
+    }
+
+    // ------------------------------------------------------------------
+    // List index assign   name[index] = value;
+    // ------------------------------------------------------------------
+
+    else if (ListAssignNode* n = dynamic_cast<ListAssignNode*>(node)) {
+        PrometheusValue var = get_var(n->name);
+        if (!std::holds_alternative<PrometheusListPtr>(var))
+            throw TypeException("'" + n->name + "' is not a list");
+
+        PrometheusListPtr lst = std::get<PrometheusListPtr>(var);
+        int idx = get_int(visit(n->index.get()));
+
+        if (idx < 0 || idx >= (int)lst->elements.size()) {
+            throw RuntimeException(
+                "Index " + std::to_string(idx) + " out of bounds for list '" +
+                n->name + "' (size " + std::to_string(lst->elements.size()) + ")");
+        }
+
+        PrometheusValue new_val = visit(n->value.get());
+        lst->elements[idx] = coerce_to_element(lst->element_type, new_val);
+        return lst->elements[idx];
+    }
+
+    // ------------------------------------------------------------------
+    // List append   name.append(value);
+    // ------------------------------------------------------------------
+
+    else if (ListAppendNode* n = dynamic_cast<ListAppendNode*>(node)) {
+        PrometheusValue var = get_var(n->name);
+        if (!std::holds_alternative<PrometheusListPtr>(var))
+            throw TypeException("'" + n->name + "' is not a list");
+
+        PrometheusListPtr lst = std::get<PrometheusListPtr>(var);
+        PrometheusValue new_val = visit(n->value.get());
+        lst->elements.push_back(coerce_to_element(lst->element_type, new_val));
+        return std::monostate{};
+    }
+
+    // ------------------------------------------------------------------
+    // List length   name.len()
+    // ------------------------------------------------------------------
+
+    else if (ListLengthNode* n = dynamic_cast<ListLengthNode*>(node)) {
+        PrometheusValue var = get_var(n->name);
+        if (!std::holds_alternative<PrometheusListPtr>(var))
+            throw TypeException("'" + n->name + "' is not a list");
+
+        PrometheusListPtr lst = std::get<PrometheusListPtr>(var);
+        return static_cast<int>(lst->elements.size());
     }
  
     return std::monostate{};

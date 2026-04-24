@@ -4,16 +4,6 @@
 
 ## **1\. Core Language Enhancements**
 
-* **Void Return Type**: Introduce void as a valid return type for functions that do not return a value.  
-* **Lists**: Implement a generic list collection.  
-  * **Syntax**: list\[type\] name \= \[elements\];  
-  * **Examples**:  
-    * list\[int\] nums \= \[1, 2, 3\];  
-    * list\[int\] nums \= \[\];  
-* **List Methods**:  
-  * name.add(element): Appends an item to the end of the list.  
-  * name.pop(): Removes and returns the last item.  
-  * name.len(): Returns the number of elements in the list.  
 * **Optional Function Parameters**: Allow parameters to have default values.  
   * **Syntax**: func type name(type param \= value) { ... }  
   * **Example**:  

@@ -2,8 +2,10 @@
 #define PROMETHEUS_TYPES_H
 
 #include <iostream>
+#include <memory>
 #include <string>
 #include <variant>
+#include <vector>
 
 /**
  * @brief The canonical runtime value type used throughout the interpreter.
@@ -13,9 +15,32 @@
  *   double       – floating-point literals and float arithmetic results
  *   bool         – results of comparison / logical operators
  *   std::string  – string literals and string variables
+ *   PrometheusListPtr – a heap-allocated, type-tagged list of values
  *   std::monostate – represents the absence of a value ("None" / void return)
+ *
+ * Lists are stored behind a shared_ptr so PrometheusValue can remain a
+ * value type even though its variant must not directly reference itself.
  */
-using PrometheusValue = std::variant<int, double, bool, std::string, std::monostate>;
+
+// Forward-declare so PrometheusValue and PrometheusListPtr can reference each other.
+struct PrometheusList;
+using PrometheusListPtr = std::shared_ptr<PrometheusList>;
+
+using PrometheusValue = std::variant<int, double, bool, std::string,
+                                     PrometheusListPtr, std::monostate>;
+
+/**
+ * @brief A runtime list: an element-type tag plus a vector of PrometheusValues.
+ * The element type is enforced at assignment / append time.
+ */
+struct PrometheusList {
+    std::string element_type;                // "int", "double", "str", "bool"
+    std::vector<PrometheusValue> elements;
+
+    PrometheusList() = default;
+    PrometheusList(std::string elem_type, std::vector<PrometheusValue> elems)
+        : element_type(std::move(elem_type)), elements(std::move(elems)) {}
+};
 
 /**
  * @brief Enumeration of all valid token types supported by the 
@@ -29,6 +54,7 @@ enum class TokenType
     DOUBLE,
     BOOL,
     VOID,
+    LIST,
 
     // Identifiers and Literals
     IDENTIFIER,
@@ -79,6 +105,10 @@ enum class TokenType
     RPAREN,         // )
     LBRACE,         // {
     RBRACE,         // }
+    LBRACKET,       // [
+    RBRACKET,       // ]
+
+    DOT,            // .
 
     SEMICOLON,       // ;
     COMMA,           // ,
@@ -96,6 +126,7 @@ inline std::string to_string(TokenType t) {
         case TokenType::DOUBLE:     return "DOUBLE";
         case TokenType::BOOL:       return "BOOL";
         case TokenType::VOID:       return "VOID";
+        case TokenType::LIST:       return "LIST";
 
         // Identifiers and Literals
         case TokenType::IDENTIFIER: return "IDENTIFIER";
@@ -147,6 +178,9 @@ inline std::string to_string(TokenType t) {
         case TokenType::RPAREN:     return "RPAREN";
         case TokenType::LBRACE:     return "LBRACE";
         case TokenType::RBRACE:     return "RBRACE";
+        case TokenType::LBRACKET:   return "LBRACKET";
+        case TokenType::RBRACKET:   return "RBRACKET";
+        case TokenType::DOT:        return "DOT";
         case TokenType::SEMICOLON:  return "SEMICOLON";
         case TokenType::COMMA:      return "COMMA";
         case TokenType::EOF_TOKEN:  return "EOF";
