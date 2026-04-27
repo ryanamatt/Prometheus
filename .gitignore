@@ -1,7 +1,17 @@
+# Prerequisites
 __pycache__/
 .vscode/
 bin/
 build/
 
-*.exe
+# Python
+venv/
+*.py[cod]
+*$py.class
+
+# C++ Build Artifacts
 *.o
+*.exe
+
+# Test
+tests/outputs/
