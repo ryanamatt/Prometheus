@@ -565,32 +565,50 @@ PrometheusValue Interpreter::visit(ASTNode* node) {
 
         FunctionDeclNode* func_node = functions[n->name];
 
-        if (n->args.size() != func_node->params.size()) {
-            throw ArgumentCountException(n->name,
-                                         (int)func_node->params.size(),
-                                         (int)n->args.size());
+        // 1. Validate argument count against min/max allowed
+        size_t total_params = func_node->params.size();
+        size_t provided_args = n->args.size();
+
+        // Calculate how many parameters have default values (from right to left)
+        size_t min_args = 0;
+        for (const auto& param : func_node->params) {
+            if (param.default_val == nullptr) min_args++;
+            else break; 
         }
 
-        // Evaluate all arguments in the *caller's* scope before switching context.
+        if (provided_args < min_args || provided_args > total_params) {
+            throw ArgumentCountException(n->name, (int)total_params, (int)provided_args);
+        }
+
+        // 2. Evaluate provided arguments in the CALLER'S scope
         std::vector<PrometheusValue> arg_values;
-        arg_values.reserve(n->args.size());
-        for (auto& arg : n->args)
+        for (auto& arg : n->args) {
             arg_values.push_back(visit(arg.get()));
-
-        // Build a fresh interpreter with only a blank global scope.
-        // Functions do not close over the caller's locals — they only see
-        // their own parameters.
-        Interpreter local_interp(func_node->body);
-        local_interp.functions = functions;   // share the function table
-
-        // Bind arguments to parameter names in the local scope.
-        for (size_t i = 0; i < arg_values.size(); i++) {
-            const std::string& p_type = func_node->params[i].first;
-            const std::string& p_name = func_node->params[i].second;
-            local_interp.declare_var(p_name,
-                coerce_to_declared(p_type, p_name, arg_values[i]));
         }
 
+        // 3. Prepare the function's local execution environment
+        Interpreter local_interp(func_node->body);
+        local_interp.functions = functions;
+
+        // 4. Bind parameters (using defaults where necessary)
+        for (size_t i = 0; i < total_params; i++) {
+            const auto& param = func_node->params[i];
+            PrometheusValue final_val;
+
+            if (i < provided_args) {
+                // Use the value passed by the caller
+                final_val = coerce_to_declared(param.type, param.name, arg_values[i]);
+            } else {
+                // Use the default expression defined in the function signature
+                // IMPORTANT: visit the default expression in the CALLER'S context
+                // or a neutral context, depending on your language's scoping rules.
+                final_val = coerce_to_declared(param.type, param.name, visit(param.default_val.get()));
+            }
+
+            local_interp.declare_var(param.name, final_val);
+        }
+
+        // 5. Execute function body
         try {
             for (auto& stmt : func_node->body)
                 local_interp.visit(stmt.get());

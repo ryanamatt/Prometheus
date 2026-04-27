@@ -501,6 +501,7 @@ std::unique_ptr<FunctionDeclNode> Parser::parse_func() {
     Token return_type_tok = eat(rtt);
     std::string return_type = return_type_tok.get_value();
  
+    // Parse Name of Function
     if (current_token().get_token() != TokenType::IDENTIFIER) {
         throw ParseException(
             "Expected function name after return type '" + return_type + "'",
@@ -513,16 +514,18 @@ std::unique_ptr<FunctionDeclNode> Parser::parse_func() {
     }
     eat(TokenType::LPAREN);
  
-    std::vector<std::pair<std::string, std::string>> params;
+    // Parse Parameters of Function
+    std::vector<Parameter> params;
     std::unordered_set<std::string> seen_params;
  
     if (current_token().get_token() != TokenType::RPAREN) {
         while (true) {
             // Validate that the next token is a type keyword
             TokenType pt = current_token().get_token();
+            // Ensure Param is valid type
             if (pt != TokenType::INT && pt != TokenType::STR &&
                 pt != TokenType::DOUBLE && pt != TokenType::BOOL &&
-                pt != TokenType::IDENTIFIER) {
+                pt != TokenType::LIST && pt != TokenType::IDENTIFIER) {
                 throw ParseException(
                     "Expected parameter type in function '" + name + "', got '" +
                     current_token().get_value() + "'",
@@ -540,11 +543,17 @@ std::unique_ptr<FunctionDeclNode> Parser::parse_func() {
             }
             Token p_name_tok = eat(TokenType::IDENTIFIER);
             std::string p_name = p_name_tok.get_value();
+
+            std::unique_ptr<ASTNode> default_value = nullptr;
+            if (current_token().get_token() == TokenType::ASSIGN) {
+                eat(TokenType::ASSIGN);
+                default_value = parse_expression();
+            }
  
             if (!seen_params.insert(p_name).second) {
                 throw DuplicateParamException(name, p_name, p_name_tok.get_line());
             }
-            params.emplace_back(p_type, p_name);
+            params.emplace_back(p_type, p_name, std::move(default_value));
  
             if (current_token().get_token() == TokenType::COMMA) {
                 eat(TokenType::COMMA);
@@ -564,6 +573,7 @@ std::unique_ptr<FunctionDeclNode> Parser::parse_func() {
     }
     eat(TokenType::RPAREN);
  
+    // Parse Body of Function
     if (current_token().get_token() != TokenType::LBRACE) {
         throw MissingBraceException('{', func_tok.get_line());
     }

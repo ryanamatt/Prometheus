@@ -167,6 +167,19 @@ public:
           change_var(std::move(change_var)), do_branch(std::move(do_branch)) {}
 };
 
+struct Parameter {
+    std::string type;
+    std::string name;
+    std::unique_ptr<ASTNode> default_val;
+
+    // Add this constructor to allow moving the unique_ptr
+    Parameter(std::string t, std::string n, std::unique_ptr<ASTNode> dv)
+        : type(std::move(t)), name(std::move(n)), default_val(std::move(dv)) {}
+
+    // Since it contains a unique_ptr, the compiler will correctly 
+    // allow moves but forbid copies automatically.
+};
+
 /**
  * Represents a function definition
  */
@@ -174,13 +187,16 @@ class FunctionDeclNode : public ASTNode {
 public:
     std::string name;
     std::string return_type;
-    std::vector<std::pair<std::string, std::string>> params; // {type, name}
+    std::vector<Parameter> params;
     std::vector<std::unique_ptr<ASTNode>> body;
 
     FunctionDeclNode(std::string name, std::string return_type, 
-                     std::vector<std::pair<std::string, std::string>> params, 
+                     std::vector<Parameter> params, // Pass by value
                      std::vector<std::unique_ptr<ASTNode>> body)
-        : name(name), return_type(return_type), params(params), body(std::move(body)) {}
+        : name(std::move(name)), 
+          return_type(std::move(return_type)), 
+          params(std::move(params)), // <--- FIX: Use std::move here
+          body(std::move(body)) {}
 };
 
 /**
