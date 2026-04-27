@@ -15,7 +15,7 @@ prometheus: $(BIN_DIR) $(OBJECTS)
 	$(CXX) -o $@ $(OBJECTS) $(CFLAGS)
 
 test: prometheus
-	python3 tests/test_runner.py
+	venv/scripts/pytest
 
 # debug
 debug: CFLAGS += -DDEBUG
