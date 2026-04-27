@@ -14,6 +14,9 @@ all: prometheus
 prometheus: $(BIN_DIR) $(OBJECTS)
 	$(CXX) -o $@ $(OBJECTS) $(CFLAGS)
 
+test: prometheus
+	python3 tests/test_runner.py
+
 # debug
 debug: CFLAGS += -DDEBUG
 debug: clean prometheus

@@ -1,0 +1,23 @@
+int x = 10;
+int y = 5;
+
+print(x + y);
+print(y + x);
+print(x - y);
+print(y - x);
+
+double a = 5.5;
+double b = 3.25;
+print("");
+print(a + b);
+print(b + a);
+print(a - b);
+print(b - a);
+
+int i = 2;
+double j = 10.5;
+print("");
+print(i + j);
+print(j + i);
+print(i - j);
+print(j - i);
