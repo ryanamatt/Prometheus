@@ -18,6 +18,16 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Set up MSYS2 (Windows only)
+        if: matrix.os == 'windows-latest'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            make
+            mingw-w64-ucrt-x86_64-gcc
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -28,18 +38,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytest
 
-      - name: Install make (Windows)
-        if: matrix.os == 'windows-latest'
-        run: choco install make
-
-      - name: Set up GCC (Windows)
-        if: matrix.os == 'windows-latest'
-        uses: egor-tensin/setup-mingw@v2
-        with:
-          platform: x64
-
       - name: Build Prometheus
-        shell: bash
+        # On Windows, we tell it to use the MSYS2 bash we just set up
+        shell: >-
+          ${{ matrix.os == 'windows-latest' && 'msys2 {0}' || 'bash' }}
         run: make
 
       - name: Run Pytest Suite
