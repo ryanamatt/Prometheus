@@ -1,4 +1,4 @@
-name: Prometheus Multi-Platform CI
+name: Prometheus Tests Multi-Platform
 
 on:
   pull_request:
@@ -34,7 +34,7 @@ jobs:
 
       - name: Set up GCC (Windows only)
         if: matrix.os == 'windows-latest'
-        uses: egor-tensin/setup-gcc@v1
+        uses: egor-tensin/setup-mingw@v1
 
       - name: Build Prometheus
         shell: bash
