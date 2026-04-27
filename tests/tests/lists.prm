@@ -1,0 +1,20 @@
+func int add(list[int] ls) {
+    int result = 0;
+    for (int i = 0; i < ls.len(); i++;) {
+        result = result + ls[i];
+    }
+    return result;
+}
+
+list[int] nums = [1, 2, 4];
+
+print(add(nums));
+
+func list[int] add_ten(list[int] ls) {
+    for (int i = 0; i < ls.len(); i++;) {
+        ls[i] = ls[i] + 10;
+    }
+    return ls;
+}
+
+print(add_ten(nums));

@@ -490,55 +490,71 @@ std::unique_ptr<ForNode> Parser::parse_for() {
 std::unique_ptr<FunctionDeclNode> Parser::parse_func() {
     Token func_tok = eat(TokenType::FUNC);
  
-    // Return type: any type keyword or identifier (including void)
+    // Parse Return type
     TokenType rtt = current_token().get_token();
     if (rtt != TokenType::INT && rtt != TokenType::STR && rtt != TokenType::DOUBLE &&
-        rtt != TokenType::BOOL && rtt != TokenType::VOID && rtt != TokenType::IDENTIFIER) {
-        throw ParseException(
-            "Expected return type after 'func', got '" + current_token().get_value() + "'",
-            current_token().get_line());
+        rtt != TokenType::BOOL && rtt != TokenType::VOID && rtt != TokenType::IDENTIFIER &&
+        rtt != TokenType::LIST) {
+        throw ParseException("Expected return type after 'func'", current_token().get_line());
     }
-    Token return_type_tok = eat(rtt);
-    std::string return_type = return_type_tok.get_value();
+    std::string return_type = eat(rtt).get_value();
+
+    if (rtt == TokenType::LIST) {
+        if (current_token().get_token() != TokenType::LBRACKET)
+            throw MissingBraceException('[', current_token().get_line());
+        eat(TokenType::LBRACKET);
+        
+        // Get the inner type (e.g., int)
+        return_type += "[" + current_token().get_value() + "]";
+        eat(current_token().get_token()); 
+        
+        if (current_token().get_token() != TokenType::RBRACKET)
+            throw MissingBraceException(']', current_token().get_line());
+        eat(TokenType::RBRACKET);
+    }
+    
  
-    // Parse Name of Function
+    // Parse Function Name
     if (current_token().get_token() != TokenType::IDENTIFIER) {
-        throw ParseException(
-            "Expected function name after return type '" + return_type + "'",
-            current_token().get_line());
+        throw ParseException("Expected function name", current_token().get_line());
     }
     std::string name = eat(TokenType::IDENTIFIER).get_value();
  
-    if (current_token().get_token() != TokenType::LPAREN) {
-        throw MissingBraceException('(', current_token().get_line());
-    }
     eat(TokenType::LPAREN);
  
-    // Parse Parameters of Function
+    // Parse Parameters
     std::vector<Parameter> params;
     std::unordered_set<std::string> seen_params;
  
     if (current_token().get_token() != TokenType::RPAREN) {
         while (true) {
-            // Validate that the next token is a type keyword
             TokenType pt = current_token().get_token();
-            // Ensure Param is valid type
             if (pt != TokenType::INT && pt != TokenType::STR &&
                 pt != TokenType::DOUBLE && pt != TokenType::BOOL &&
                 pt != TokenType::LIST && pt != TokenType::IDENTIFIER) {
-                throw ParseException(
-                    "Expected parameter type in function '" + name + "', got '" +
-                    current_token().get_value() + "'",
-                    current_token().get_line());
+                throw ParseException("Invalid parameter type", current_token().get_line());
             }
  
-            std::string p_type = current_token().get_value();
-            eat(current_token().get_token());   // consume type token
+            std::string p_full_type = eat(pt).get_value();
+
+            // Parse List Type for Parameters
+            if (pt == TokenType::LIST) {
+                if (current_token().get_token() != TokenType::LBRACKET)
+                    throw MissingBraceException('[', current_token().get_line());
+                eat(TokenType::LBRACKET);
+                
+                // Get the inner type (e.g., int)
+                p_full_type += "[" + current_token().get_value() + "]";
+                eat(current_token().get_token()); 
+                
+                if (current_token().get_token() != TokenType::RBRACKET)
+                    throw MissingBraceException(']', current_token().get_line());
+                eat(TokenType::RBRACKET);
+            }
  
             if (current_token().get_token() != TokenType::IDENTIFIER) {
                 throw ParseException(
-                    "Expected parameter name after type '" + p_type +
-                    "' in function '" + name + "'",
+                    "Expected parameter name after type '" + p_full_type + "'",
                     current_token().get_line());
             }
             Token p_name_tok = eat(TokenType::IDENTIFIER);
@@ -553,36 +569,23 @@ std::unique_ptr<FunctionDeclNode> Parser::parse_func() {
             if (!seen_params.insert(p_name).second) {
                 throw DuplicateParamException(name, p_name, p_name_tok.get_line());
             }
-            params.emplace_back(p_type, p_name, std::move(default_value));
+            params.emplace_back(p_full_type, p_name, std::move(default_value));
  
             if (current_token().get_token() == TokenType::COMMA) {
                 eat(TokenType::COMMA);
-                if (current_token().get_token() == TokenType::RPAREN) {
-                    throw ParseException(
-                        "Trailing comma in parameter list of function '" + name + "'",
-                        current_token().get_line());
-                }
             } else {
                 break;
             }
         }
     }
  
-    if (current_token().get_token() != TokenType::RPAREN) {
-        throw MissingBraceException('(', func_tok.get_line());
-    }
     eat(TokenType::RPAREN);
- 
-    // Parse Body of Function
-    if (current_token().get_token() != TokenType::LBRACE) {
-        throw MissingBraceException('{', func_tok.get_line());
-    }
+    
+    // Parse Function Body
     eat(TokenType::LBRACE);
     std::vector<std::unique_ptr<ASTNode>> body;
     while (current_token().get_token() != TokenType::RBRACE) {
-        if (current_token().get_token() == TokenType::EOF_TOKEN) {
-            throw MissingBraceException('{', func_tok.get_line());
-        }
+        if (current_token().get_token() == TokenType::EOF_TOKEN) throw MissingBraceException('{', func_tok.get_line());
         auto stmt = parse_statement();
         if (stmt) body.push_back(std::move(stmt));
     }
