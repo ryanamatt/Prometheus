@@ -1,9 +1,12 @@
 import subprocess
 import os
+import platform
 import pytest
 
 # Paths based on your PSTree
-PROMETHEUS_EXE = "./prometheus.exe"
+PROMETHEUS = "./prometheus"
+if platform.system() == "Windows":
+        PROMETHEUS += ".exe"
 TESTS_DIR = os.path.join("tests", "tests")
 EXPECTED_DIR = os.path.join("tests", "expected")
 
@@ -18,7 +21,7 @@ def test_prometheus_output(prm_filename, update_mode):
 
     # Run the interpreter
     result = subprocess.run(
-        [PROMETHEUS_EXE, input_path],
+        [PROMETHEUS, input_path],
         capture_output=True,
         text=True,
         timeout=5
