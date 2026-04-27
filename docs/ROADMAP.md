@@ -2,15 +2,6 @@
 
 **Disclaimer**: The features listed below are not in any particular order of when they will be added to the language.
 
-## **1\. Core Language Enhancements**
-
-* **Optional Function Parameters**: Allow parameters to have default values.  
-  * **Syntax**: func type name(type param \= value) { ... }  
-  * **Example**:  
-    func int calculate(int a, int b \= 10\) {  
-        return a \+ b;  
-    }
-
 * **Multiple Assignment & Returns**: Support returning multiple values from a function and unpacking them.  
   * **Syntax**: return val1, val2; and type x, type y \= functionCall();  
   * **Example**:  
@@ -21,8 +12,6 @@
 
 * **Module System (Imports)**: Enable code reuse and library management.  
   * **Syntax**: import "filename"; for local files or import "libName"; for standard libraries.
-
-## **2\. Control Flow**
 
 * **For Each Loop**: Simplified iteration over collections.  
   * **Syntax**: for (type item in listName) { ... }  
@@ -42,7 +31,7 @@
         print("Caught error:", error);  
     }
 
-## **3\. Standard Library**
+## **Standard Library**
 
 * **Range Function**: Generates a list of integers for iteration.  
   * **Syntax**: range(start, end)  
@@ -68,7 +57,7 @@
   * getenv(name): Retrieves environment variables.  
   * exit(code): Terminates the program with a status code.
 
-## **4\. Future / Extensions**
+## ** Future / Extensions**
 
 * **Daedalus ML Library**: High-performance Machine Learning library.  
   * Porting existing C++ implementation to the Prometheus runtime.  

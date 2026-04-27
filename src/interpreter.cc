@@ -503,7 +503,7 @@ PrometheusValue Interpreter::visit(ASTNode* node) {
     // Function call
     // ------------------------------------------------------------------
  
-    else if (CallNode* n = dynamic_cast<CallNode*>(node)) {
+else if (CallNode* n = dynamic_cast<CallNode*>(node)) {
  
         // ---- Built-in type conversions --------------------------------
  
@@ -565,7 +565,7 @@ PrometheusValue Interpreter::visit(ASTNode* node) {
 
         FunctionDeclNode* func_node = functions[n->name];
 
-        // 1. Validate argument count against min/max allowed
+        // Validate argument count
         size_t total_params = func_node->params.size();
         size_t provided_args = n->args.size();
 
@@ -580,41 +580,42 @@ PrometheusValue Interpreter::visit(ASTNode* node) {
             throw ArgumentCountException(n->name, (int)total_params, (int)provided_args);
         }
 
-        // 2. Evaluate provided arguments in the CALLER'S scope
+        // Evaluate provided arguments in the CALLER'S scope
         std::vector<PrometheusValue> arg_values;
         for (auto& arg : n->args) {
             arg_values.push_back(visit(arg.get()));
         }
 
-        // 3. Prepare the function's local execution environment
+        // Prepare the function's local execution environment
         Interpreter local_interp(func_node->body);
         local_interp.functions = functions;
 
-        // 4. Bind parameters (using defaults where necessary)
+        // Bind parameters
         for (size_t i = 0; i < total_params; i++) {
             const auto& param = func_node->params[i];
             PrometheusValue final_val;
 
             if (i < provided_args) {
-                // Use the value passed by the caller
                 final_val = coerce_to_declared(param.type, param.name, arg_values[i]);
             } else {
-                // Use the default expression defined in the function signature
-                // IMPORTANT: visit the default expression in the CALLER'S context
-                // or a neutral context, depending on your language's scoping rules.
                 final_val = coerce_to_declared(param.type, param.name, visit(param.default_val.get()));
             }
 
             local_interp.declare_var(param.name, final_val);
         }
 
-        // 5. Execute function body
+        // Execute function body and check return type
+        PrometheusValue result = std::monostate{};
         try {
             for (auto& stmt : func_node->body)
                 local_interp.visit(stmt.get());
         } catch (const ReturnException& e) {
-            return e.value;
+            result = e.value;
         }
+
+        // Ensure the returned value matches the function's declared return type
+        // use "return" as a synthetic name for the error message if a mismatch occurs.
+        return coerce_to_declared(func_node->return_type, "return", result);
     }
 
     // ------------------------------------------------------------------
