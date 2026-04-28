@@ -4,7 +4,7 @@ SRC_DIR = src
 BIN_DIR = bin
 
 # List of source files 
-SOURCES = main.cc lexer.cc parser.cc interpreter.cc
+SOURCES = main.cc lexer.cc parser.cc interpreter.cc stdlib/math.cc
 OBJECTS = $(SOURCES:%.cc=$(BIN_DIR)/%.o)
 
 ifeq ($(OS), Windows_NT)
@@ -37,6 +37,7 @@ $(BIN_DIR)/%.o: $(SRC_DIR)/%.cc
 
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
+	mkdir -p $(BIN_DIR)/stdlib
 
 clean:
 	rm -rf $(BIN_DIR) prometheus prometheus-viz

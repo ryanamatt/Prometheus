@@ -1,6 +1,10 @@
 # stdlib/math.prm — Prometheus Standard Library: Math Module
 #
-# Loaded lazily on `use math;`
+# Loaded lazily on `use math;
+
+double PI = 3.14159265358979323846;
+double TAU = 6.28318530717958647692;
+double e = 2.71828182845904523536;
 
 func int abs(int n) {
     if (n < 0) {
