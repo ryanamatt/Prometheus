@@ -12,6 +12,7 @@ venv/
 # C++ Build Artifacts
 *.o
 *.exe
+prometheus
 
 # Test
 tests/outputs/

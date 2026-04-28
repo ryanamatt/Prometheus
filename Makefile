@@ -7,6 +7,12 @@ BIN_DIR = bin
 SOURCES = main.cc lexer.cc parser.cc interpreter.cc
 OBJECTS = $(SOURCES:%.cc=$(BIN_DIR)/%.o)
 
+ifeq ($(OS), Windows_NT)
+	PYTEST = venv/scripts/pytest
+else
+	PYTEST = venv/bin/pytest
+endif
+
 .PHONY: all clean debug visualize
 
 all: prometheus
@@ -15,7 +21,7 @@ prometheus: $(BIN_DIR) $(OBJECTS)
 	$(CXX) -o $@ $(OBJECTS) $(CFLAGS)
 
 test: prometheus
-	venv/scripts/pytest
+	$(PYTEST)
 
 # debug
 debug: CFLAGS += -DDEBUG
