@@ -327,6 +327,18 @@ PrometheusValue Interpreter::visit(ASTNode* node) {
         if (n->op.get_token() == TokenType::NOT) {
             return !get_bool(right_val, op_line);
         }
+
+        // Unary Minus (-)
+        if (n->op.get_token() == TokenType::MINUS) {
+            if (std::holds_alternative<double>(right_val)) {
+                return get_double(-std::get<double>(right_val), op_line);
+            } else if (std::holds_alternative<int>(right_val)) {
+                return get_int(-std::get<int>(right_val), op_line);
+            }
+            // Fallback: try to force it to a double if it's numeric but not strictly int/double
+            return -get_double(right_val, op_line);
+        }
+
         throw OperatorException(n->op.get_value(), "this expression", op_line);
     }
 
