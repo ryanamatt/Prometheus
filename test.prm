@@ -1,0 +1,4 @@
+use math;
+
+print(abs(5 - 10));
+print(abs(2));

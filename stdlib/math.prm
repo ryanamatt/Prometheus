@@ -1,0 +1,53 @@
+# stdlib/math.prm — Prometheus Standard Library: Math Module
+#
+# Loaded lazily on `use math;`
+
+func int abs(int n) {
+    if (n < 0) {
+        int neg = 0 - n;
+        return neg;
+    }
+    return n;
+}
+
+func double fabs(double n) {
+    if (n < 0.0) {
+        double neg = 0.0 - n;
+        return neg;
+    }
+    return n;
+}
+
+func int max(int a, int b) {
+    if (a > b) { return a; }
+    return b;
+}
+
+func int min(int a, int b) {
+    if (a < b) { return a; }
+    return b;
+}
+
+func double dmax(double a, double b) {
+    if (a > b) { return a; }
+    return b;
+}
+
+func double dmin(double a, double b) {
+    if (a < b) { return a; }
+    return b;
+}
+
+func int clamp(int val, int lo, int hi) {
+    if (val < lo) { return lo; }
+    if (val > hi) { return hi; }
+    return val;
+}
+
+func bool is_even(int n) {
+    return (n % 2) == 0;
+}
+
+func bool is_odd(int n) {
+    return (n % 2) != 0;
+}

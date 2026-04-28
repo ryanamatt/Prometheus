@@ -101,6 +101,11 @@ enum class TokenType
     FUNC,           // FUNC
     RETURN,         // RETURN
 
+    // Modules
+    IMPORT,         // import (import filename)
+    USE,            // use (use stlib_module)
+
+    // Delimiters
     LPAREN,         // (
     RPAREN,         // )
     LBRACE,         // {
@@ -172,6 +177,10 @@ inline std::string to_string(TokenType t) {
         // Funcs
         case TokenType::FUNC:       return "FUNC";
         case TokenType::RETURN:     return "RETURN";
+
+        // Modules
+        case TokenType::IMPORT:     return "IMPORT";
+        case TokenType::USE:        return "USE";
 
         // Delimiters
         case TokenType::LPAREN:     return "LPAREN";

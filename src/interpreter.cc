@@ -1,14 +1,71 @@
 #include <cmath>
+#include <filesystem>
+#include <fstream>
 #include <sstream>
 #include "exceptions.h"
 #include "interpreter.h"
+#include "lexer.h"
+#include "parser.h"
 
 Interpreter::Interpreter(const std::vector<std::unique_ptr<ASTNode>>& nodes,
-                         std::unordered_map<std::string, PrometheusValue> global_vars)
-    : nodes(&nodes)
+                         std::unordered_map<std::string, PrometheusValue> global_vars,
+                         std::string base_dir)
+    : nodes(&nodes), base_dir(std::move(base_dir))
 {
     // The global scope is always present at index 0.
     scope_stack.push_back(std::move(global_vars));
+}
+
+void Interpreter::register_math_functions() {
+    // Single-arg double → double helpers
+    auto wrap1 = [](std::string name, double(*fn)(double)) -> NativeFunction {
+        return [name, fn](std::vector<PrometheusValue> args, int line) -> PrometheusValue {
+            if (args.size() != 1)
+                throw ArgumentCountException(name, 1, (int)args.size(), line);
+            if (auto* i = std::get_if<int>(&args[0]))
+                return fn(static_cast<double>(*i));
+            if (auto* d = std::get_if<double>(&args[0]))
+                return fn(*d);
+            throw TypeException("'" + name + "' requires a numeric argument", line);
+        };
+    };
+
+    native_functions["sin"]   = wrap1("sin",   std::sin);
+    native_functions["cos"]   = wrap1("cos",   std::cos);
+    native_functions["tan"]   = wrap1("tan",   std::tan);
+    native_functions["asin"]  = wrap1("asin",  std::asin);
+    native_functions["acos"]  = wrap1("acos",  std::acos);
+    native_functions["atan"]  = wrap1("atan",  std::atan);
+    native_functions["sqrt"]  = wrap1("sqrt",  std::sqrt);
+    native_functions["log"]   = wrap1("log",   std::log);
+    native_functions["log10"] = wrap1("log10", std::log10);
+    native_functions["exp"]   = wrap1("exp",   std::exp);
+    native_functions["floor"] = wrap1("floor", [](double x) { return std::floor(x); });
+    native_functions["ceil"]  = wrap1("ceil",  [](double x) { return std::ceil(x); });
+
+    // atan2(y, x) — two args
+    native_functions["atan2"] = [](std::vector<PrometheusValue> args, int line) -> PrometheusValue {
+        if (args.size() != 2)
+            throw ArgumentCountException("atan2", 2, (int)args.size(), line);
+        auto to_d = [&](const PrometheusValue& v) -> double {
+            if (auto* i = std::get_if<int>(&v))    return *i;
+            if (auto* d = std::get_if<double>(&v)) return *d;
+            throw TypeException("'atan2' requires numeric arguments", line);
+        };
+        return std::atan2(to_d(args[0]), to_d(args[1]));
+    };
+
+    // pow(base, exp)
+    native_functions["pow"] = [](std::vector<PrometheusValue> args, int line) -> PrometheusValue {
+        if (args.size() != 2)
+            throw ArgumentCountException("pow", 2, (int)args.size(), line);
+        auto to_d = [&](const PrometheusValue& v) -> double {
+            if (auto* i = std::get_if<int>(&v))    return *i;
+            if (auto* d = std::get_if<double>(&v)) return *d;
+            throw TypeException("'pow' requires numeric arguments", line);
+        };
+        return std::pow(to_d(args[0]), to_d(args[1]));
+    };
 }
 
 
@@ -55,6 +112,157 @@ bool Interpreter::has_var(const std::string& name) const {
         if (it->count(name)) return true;
     }
     return false;
+}
+
+// ============================================================================
+// Stdlib registry
+// ============================================================================
+
+void Interpreter::init_stdlib_registry() {
+    if (!stdlib_registry.empty()) return;  // already initialised
+
+    // Locate the stdlib directory.
+    std::filesystem::path stdlib_dir;
+
+    // Explicit environment variable override.
+    if (const char* env = std::getenv("PROMETHEUS_STDLIB")) {
+        stdlib_dir = env;
+    }
+    // Relative to the importing file's directory.
+    else if (!base_dir.empty()) {
+        stdlib_dir = std::filesystem::path(base_dir) / "stdlib";
+    }
+    // Relative to CWD (REPL / test runner).
+    else {
+        stdlib_dir = std::filesystem::path("stdlib");
+    }
+
+    std::error_code ec;
+    if (!std::filesystem::is_directory(stdlib_dir, ec)) {
+        // Stdlib directory not found — registry stays empty; any `use`
+        // statement will produce an UndefinedFunctionException-style error.
+        return;
+    }
+
+    // Walk the stdlib directory and register every .prm file by stem name.
+    for (const auto& entry :
+             std::filesystem::directory_iterator(stdlib_dir, ec)) {
+        if (ec) break;
+        if (!entry.is_regular_file()) continue;
+        auto p = entry.path();
+        if (p.extension() == ".prm") {
+            stdlib_registry[p.stem().string()] = p.string();
+        }
+    }
+}
+
+// ============================================================================
+// exec_import / exec_use
+// ============================================================================
+
+void Interpreter::exec_import(ImportNode* node) {
+    // Resolve to an absolute canonical path so the guard works correctly
+    // regardless of how the path was spelled.
+    std::filesystem::path raw(node->path);
+
+    // If the path has no extension, try adding .prm automatically.
+    if (raw.extension().empty()) {
+        raw += ".prm";
+    }
+
+    std::filesystem::path resolved;
+    if (raw.is_absolute()) {
+        resolved = raw;
+    } else {
+        std::string dir = node->base_dir.empty() ? base_dir : node->base_dir;
+        if (dir.empty()) {
+            resolved = std::filesystem::current_path() / raw;
+        } else {
+            resolved = std::filesystem::path(dir) / raw;
+        }
+    }
+
+    std::error_code ec;
+    resolved = std::filesystem::weakly_canonical(resolved, ec);
+
+    // Guard against circular / duplicate imports.
+    std::string key = resolved.string();
+    if (imported_files.count(key)) return;
+    imported_files.insert(key);
+
+    // Read the file.
+    std::ifstream f(resolved);
+    if (!f.is_open()) {
+        throw RuntimeException(
+            "import: cannot open file '" + resolved.string() + "'");
+    }
+    std::stringstream buf;
+    buf << f.rdbuf();
+    std::string src = buf.str();
+
+    // Lex → parse → interpret inline in the current scope.
+    Lexer lex(src);
+    std::vector<Token> toks = lex.tokenize();
+
+    Parser parser(toks);
+    std::vector<std::unique_ptr<ASTNode>> tree = parser.parse();
+
+    // Pass the imported file's directory as the new base_dir so that
+    // any further imports inside it are resolved relative to it.
+    std::string child_base = resolved.parent_path().string();
+
+    // Execute each node in *our* scope (not a sub-interpreter) so that
+    // declared variables and functions become visible to the importer.
+    // We temporarily update base_dir for nested resolution.
+    std::string saved_base = base_dir;
+    base_dir = child_base;
+
+    // Move the tree into owned_trees BEFORE iterating — this keeps all
+    // FunctionDeclNode* pointers alive for the lifetime of the interpreter.
+    owned_trees.push_back(std::move(tree));
+    auto& live_tree = owned_trees.back();
+
+    for (auto& stmt : live_tree) {
+        visit(stmt.get());
+    }
+
+    base_dir = saved_base;
+}
+
+void Interpreter::exec_use(UseNode* node) {
+    // Check if it's the built-in math module before looking in the filesystem
+    if (node->module_name == "math") {
+        if (!loaded_modules.count("math")) {
+            register_math_functions(); // Call a new helper method
+        }
+    }
+
+    // No-op if already loaded.
+    if (loaded_modules.count(node->module_name)) return;
+
+    init_stdlib_registry();
+
+    auto it = stdlib_registry.find(node->module_name);
+    if (it == stdlib_registry.end()) {
+        throw RuntimeException(
+            "use: unknown standard library module '" + node->module_name + "'. "
+            "Available modules: " + [&]() {
+                std::string list;
+                for (auto& [k, v] : stdlib_registry) {
+                    if (!list.empty()) list += ", ";
+                    list += k;
+                }
+                return list.empty() ? "(none found)" : list;
+            }());
+    }
+
+    // Mark as loaded *before* executing so recursive use is a no-op.
+    loaded_modules.insert(node->module_name);
+
+    // Re-use exec_import machinery by constructing a temporary ImportNode.
+    ImportNode import_node(it->second);
+    import_node.base_dir = "";   // path is already absolute from the registry
+    exec_import(&import_node);
 }
 
 // ============================================================================
@@ -556,6 +764,14 @@ else if (CallNode* n = dynamic_cast<CallNode*>(node)) {
             PrometheusValue val = visit(n->args[0].get());
             return get_bool(val);
         }
+
+        auto native_it = native_functions.find(n->name);
+        if (native_it != native_functions.end()) {
+            std::vector<PrometheusValue> arg_vals;
+            for (auto& arg : n->args)
+                arg_vals.push_back(visit(arg.get()));
+            return native_it->second(arg_vals, 1);
+        }
  
         // --- User-defined functions ---
 
@@ -726,6 +942,27 @@ else if (CallNode* n = dynamic_cast<CallNode*>(node)) {
 
         PrometheusListPtr lst = std::get<PrometheusListPtr>(var);
         return static_cast<int>(lst->elements.size());
+    }
+
+    // ------------------------------------------------------------------
+    // Import   import path/to/file;
+    // ------------------------------------------------------------------
+
+    else if (ImportNode* n = dynamic_cast<ImportNode*>(node)) {
+        // Stamp the current base_dir into the node so exec_import can
+        // resolve relative paths even when called from a sub-interpreter.
+        if (n->base_dir.empty()) n->base_dir = base_dir;
+        exec_import(n);
+        return std::monostate{};
+    }
+
+    // ------------------------------------------------------------------
+    // Use   use module_name;
+    // ------------------------------------------------------------------
+
+    else if (UseNode* n = dynamic_cast<UseNode*>(node)) {
+        exec_use(n);
+        return std::monostate{};
     }
  
     return std::monostate{};

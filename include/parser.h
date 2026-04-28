@@ -95,10 +95,18 @@ private:
     /** @brief Parses a `func <type> <name>(...) { }` function definition. */
     std::unique_ptr<FunctionDeclNode> parse_func();
 
-    /** 
-     * @brief Parses a `return <expr>;` statement.
-     */
+    /** @brief Parses a `return <expr>;` statement.*/
     std::unique_ptr<ReturnNode> parse_return();
+
+    /**
+     * @brief Parses `import path/to/file;` — bare path, no quotes.
+     */
+    std::unique_ptr<ImportNode> parse_import();
+
+    /**
+     * @brief Parses `use module_name;` — loads a stdlib module lazily.
+     */
+    std::unique_ptr<UseNode> parse_use();
 
     /** 
      * @brief Parses a `<name>(arg, ...)` function call expression. 
