@@ -171,6 +171,8 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
     if (tt == TokenType::FOR)    return parse_for();
     if (tt == TokenType::FUNC)   return parse_func();
     if (tt == TokenType::RETURN) return parse_return();
+    if (tt == TokenType::IMPORT) return parse_import();
+    if (tt == TokenType::USE)    return parse_use();
 
     if (tt == TokenType::EOF_TOKEN) {
         pos++;
@@ -910,4 +912,99 @@ std::unique_ptr<ASTNode> Parser::parse_call_special(std::string name) {
     eat(TokenType::RPAREN);
  
     return std::make_unique<CallNode>(name, std::move(args));
+}
+// ============================================================================
+// Import / Use
+// ============================================================================
+
+/**
+ * import path/to/file.prm;
+ *
+ * The path is assembled by consuming alternating tokens that can form a
+ * file-system path: IDENTIFIER, DOT, DIVIDE (/), MINUS (-).
+ * This covers common forms such as:
+ *   import utils;
+ *   import utils.prm;
+ *   import helpers/math;
+ *   import helpers/math.prm;
+ *   import ../shared/utils.prm;
+ */
+std::unique_ptr<ImportNode> Parser::parse_import() {
+    Token import_tok = eat(TokenType::IMPORT);
+
+    std::string path;
+
+    // Consume leading "../" sequences (two DOTs followed by optional DIVIDE)
+    while (pos + 1 < (int)tokens.size() &&
+           tokens[pos].get_token()     == TokenType::DOT &&
+           tokens[pos + 1].get_token() == TokenType::DOT) {
+        path += "..";
+        pos += 2;
+        if (current_token().get_token() == TokenType::DIVIDE) {
+            path += '/';
+            pos++;
+        }
+    }
+
+    // The first segment must be an identifier
+    if (current_token().get_token() != TokenType::IDENTIFIER) {
+        throw ParseException(
+            "Expected a file path after 'import'",
+            import_tok.get_line());
+    }
+
+    // Assemble path from tokens until semicolon / EOF.
+    // Allowed inter-segment tokens: IDENTIFIER, DOT, DIVIDE, MINUS.
+    while (true) {
+        TokenType tt = current_token().get_token();
+        if (tt == TokenType::IDENTIFIER) {
+            path += eat(TokenType::IDENTIFIER).get_value();
+        } else if (tt == TokenType::DOT) {
+            path += '.';
+            pos++;
+        } else if (tt == TokenType::DIVIDE) {
+            path += '/';
+            pos++;
+        } else if (tt == TokenType::MINUS) {
+            path += '-';
+            pos++;
+        } else {
+            break;
+        }
+    }
+
+    if (path.empty()) {
+        throw ParseException("Empty path in import statement", import_tok.get_line());
+    }
+
+    if (current_token().get_token() != TokenType::SEMICOLON) {
+        throw MissingSemicolonException("import statement", current_token().get_line());
+    }
+    eat(TokenType::SEMICOLON);
+
+    return std::make_unique<ImportNode>(path);
+}
+
+/**
+ * use module_name;
+ *
+ * Module names follow identifier rules: letters, digits, underscores.
+ */
+std::unique_ptr<UseNode> Parser::parse_use() {
+    Token use_tok = eat(TokenType::USE);
+
+    if (current_token().get_token() != TokenType::IDENTIFIER) {
+        throw ParseException(
+            "Expected a module name after 'use'",
+            use_tok.get_line());
+    }
+
+    std::string module_name = eat(TokenType::IDENTIFIER).get_value();
+
+    if (current_token().get_token() != TokenType::SEMICOLON) {
+        throw MissingSemicolonException("use statement", current_token().get_line());
+    }
+    eat(TokenType::SEMICOLON);
+
+    return std::make_unique<UseNode>(module_name);
 }

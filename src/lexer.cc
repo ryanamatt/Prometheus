@@ -183,7 +183,9 @@ Token Lexer::make_identifier() {
         {"while",  TokenType::WHILE},
         {"for",    TokenType::FOR},
         {"func",   TokenType::FUNC},
-        {"return", TokenType::RETURN}
+        {"return", TokenType::RETURN},
+        {"import", TokenType::IMPORT},
+        {"use",    TokenType::USE}
     };
 
     // Check if the word exists in our keyword map

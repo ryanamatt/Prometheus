@@ -195,7 +195,7 @@ public:
                      std::vector<std::unique_ptr<ASTNode>> body)
         : name(std::move(name)), 
           return_type(std::move(return_type)), 
-          params(std::move(params)), // <--- FIX: Use std::move here
+          params(std::move(params)),
           body(std::move(body)) {}
 };
 
@@ -293,6 +293,35 @@ public:
     std::string name;
 
     ListLengthNode(std::string name) : name(std::move(name)) {}
+};
+
+/**
+ * Represents `import filename;`
+ * Resolves relative to the importing file's directory (or CWD in the REPL).
+ * The resolved path is stored after the initial parse so the interpreter
+ * can read, lex, parse, and execute the target file inline.
+ */
+class ImportNode : public ASTNode {
+public:
+    std::string path;      // exactly as written by the user (no quotes)
+    std::string base_dir;  // set by the interpreter/main before execution
+ 
+    ImportNode(std::string path, std::string base_dir = "")
+        : path(std::move(path)), base_dir(std::move(base_dir)) {}
+};
+ 
+/**
+ * @brief Represents `use module_name;`
+ * Names a standard-library module.  The interpreter looks the name up in its
+ * stdlib registry and injects the module's exported functions/variables into
+ * the current global scope — but only the first time the module is referenced
+ * (lazy loading).
+ */
+class UseNode : public ASTNode {
+public:
+    std::string module_name;
+ 
+    UseNode(std::string module_name) : module_name(std::move(module_name)) {}
 };
 
 /**

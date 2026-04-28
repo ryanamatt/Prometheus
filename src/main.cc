@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <filesystem>
 #include <sstream>
 #include <string>
 #include <variant>
@@ -32,7 +33,7 @@ void runREPL() {
             Parser parser(tokens);
             std::vector<std::unique_ptr<ASTNode>> nodes = parser.parse();
 
-            Interpreter interpreter(nodes, globalVariables);
+            Interpreter interpreter(nodes, globalVariables, "");
             globalVariables = interpreter.interpret();
         }
 
@@ -123,7 +124,8 @@ int main (int argc, char* argv[])
         // ----------------------------------------------------------------
         // Interpret
         // ----------------------------------------------------------------
-        Interpreter interpreter(nodes);
+        std::string base_dir = std::filesystem::path(filename).parent_path().string();
+        Interpreter interpreter(nodes, {}, base_dir);
         std::unordered_map<std::string, PrometheusValue> variables = interpreter.interpret();
 
 #ifdef DEBUG
