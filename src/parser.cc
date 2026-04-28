@@ -753,8 +753,10 @@ std::unique_ptr<ASTNode> Parser::parse_exponent() {
 }
 
 std::unique_ptr<ASTNode> Parser::parse_unary() {
-    if (current_token().get_token() == TokenType::NOT) {
-        Token op = eat(TokenType::NOT);
+    TokenType tt = current_token().get_token();
+
+    if (tt == TokenType::NOT || tt == TokenType::MINUS) {
+        Token op = eat(tt);
         // call parse_parentheses so it can handle !(a > b)
         return std::make_unique<UnaryOpNode>(op, parse_unary());
     }
