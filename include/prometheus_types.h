@@ -117,6 +117,7 @@ enum class TokenType
     RBRACKET,       // ]
 
     DOT,            // .
+    COLON,          // :
 
     SEMICOLON,       // ;
     COMMA,           // ,
@@ -195,7 +196,10 @@ inline std::string to_string(TokenType t) {
         case TokenType::RBRACE:     return "RBRACE";
         case TokenType::LBRACKET:   return "LBRACKET";
         case TokenType::RBRACKET:   return "RBRACKET";
+
         case TokenType::DOT:        return "DOT";
+        case TokenType::COLON:      return "IN";
+
         case TokenType::SEMICOLON:  return "SEMICOLON";
         case TokenType::COMMA:      return "COMMA";
         case TokenType::EOF_TOKEN:  return "EOF";

@@ -12,17 +12,21 @@ std::vector<Token> Lexer::tokenize() {
             {'*', TokenType::MULTIPLY},
             {'/', TokenType::DIVIDE},
             {'%', TokenType::MODULO},
+
             {'>', TokenType::GREATER},
             {'<', TokenType::LESSER},
             {'&', TokenType::AND},
             {'|', TokenType::OR},
+
             {'(', TokenType::LPAREN},
             {')', TokenType::RPAREN},
             {'{', TokenType::LBRACE},
             {'}', TokenType::RBRACE},
             {'[', TokenType::LBRACKET},
             {']', TokenType::RBRACKET},
+
             {'.', TokenType::DOT},
+            {':', TokenType::COLON},
             {';', TokenType::SEMICOLON},
             {',', TokenType::COMMA}
         };
@@ -175,16 +179,21 @@ Token Lexer::make_identifier() {
         {"bool",   TokenType::BOOL},
         {"void",   TokenType::VOID},
         {"list",   TokenType::LIST},
+
         {"if",     TokenType::IF},
         {"elif",   TokenType::ELIF},
         {"else",   TokenType::ELSE},
+
         {"print",  TokenType::PRINT},
         {"input",  TokenType::INPUT},
+        {"range",  TokenType::RANGE},
+
         {"while",  TokenType::WHILE},
         {"for",    TokenType::FOR},
-        {"range",  TokenType::RANGE},
+        
         {"func",   TokenType::FUNC},
         {"return", TokenType::RETURN},
+
         {"import", TokenType::IMPORT},
         {"use",    TokenType::USE}
     };

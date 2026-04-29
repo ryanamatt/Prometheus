@@ -495,13 +495,65 @@ std::unique_ptr<WhileNode> Parser::parse_while() {
     return std::make_unique<WhileNode>(std::move(condition), std::move(do_branch));
 }
 
-std::unique_ptr<ForNode> Parser::parse_for() {
+std::unique_ptr<ASTNode> Parser::parse_for() {
     Token for_tok = eat(TokenType::FOR);
  
     if (current_token().get_token() != TokenType::LPAREN) {
         throw MissingBraceException('(', for_tok.get_line());
     }
     eat(TokenType::LPAREN);
+
+
+    // ----------------------------------------------------------------
+    // Peek-ahead: is this a range-based for-in loop?
+    //   for (int i : nums) { ... }
+    // Pattern: TYPE  IDENTIFIER  COLON  ...
+    // We look two tokens ahead (from current pos):
+    //   tokens[pos]   = type keyword (INT / STR / DOUBLE / BOOL)
+    //   tokens[pos+1] = identifier
+    //   tokens[pos+2] = COLON
+    // ----------------------------------------------------------------
+    bool is_for_in = false;
+    if (pos + 2 < (int)tokens.size()) {
+        TokenType t0 = tokens[pos].get_token();
+        TokenType t2 = tokens[pos + 2].get_token();
+        bool type_kw = (t0 == TokenType::INT   || t0 == TokenType::STR ||
+                        t0 == TokenType::DOUBLE || t0 == TokenType::BOOL);
+        is_for_in = type_kw
+                    && tokens[pos + 1].get_token() == TokenType::IDENTIFIER
+                    && t2 == TokenType::COLON;
+    }
+
+    if (is_for_in) {
+        // --- for (type name : list_expr) { body } ---
+        std::string var_type = eat(current_token().get_token()).get_value(); // consume type
+        std::string var_name = eat(TokenType::IDENTIFIER).get_value();
+        eat(TokenType::COLON);
+
+        auto list_expr = parse_expression();
+
+        if (current_token().get_token() != TokenType::RPAREN)
+            throw MissingBraceException('(', for_tok.get_line());
+        eat(TokenType::RPAREN);
+
+        if (current_token().get_token() != TokenType::LBRACE)
+            throw MissingBraceException('{', for_tok.get_line());
+        eat(TokenType::LBRACE);
+
+        std::vector<std::unique_ptr<ASTNode>> body;
+        while (current_token().get_token() != TokenType::RBRACE) {
+            if (current_token().get_token() == TokenType::EOF_TOKEN)
+                throw MissingBraceException('{', for_tok.get_line());
+            body.push_back(parse_statement());
+        }
+        eat(TokenType::RBRACE);
+
+        return std::make_unique<ForInNode>(var_type, var_name,
+                                           std::move(list_expr), std::move(body));
+    }
+
+    // --- Classic for (init; cond; update;) { body } ---
+
     auto var       = parse_declaration();      // init statement (consumes its own semicolon)
     auto condition = parse_expression();
     if (current_token().get_token() != TokenType::SEMICOLON) {

@@ -95,7 +95,7 @@ private:
     /** 
      * @brief Parses a `for (<decl> <cond>; <stmt>) { }` loop. 
      */
-    std::unique_ptr<ForNode> parse_for();
+    std::unique_ptr<ASTNode> parse_for();
 
     /** @brief Parses a `func <type> <name>(...) { }` function definition. */
     std::unique_ptr<FunctionDeclNode> parse_func();
