@@ -6,6 +6,60 @@ double PI = 3.14159265358979323846;
 double TAU = 6.28318530717958647692;
 double e = 2.71828182845904523536;
 
+# --- Geometry ---
+
+func double sin(double x) {
+    return __native_sin(x);
+}
+
+func double cos(double x) {
+    return __native_cos(x);
+}
+
+func double tan(double x) {
+    return __native_tan(x);
+}
+
+func double asin(double x) {
+    return __native_asin(x);
+}
+
+func double acos(double x) {
+    return __native_acos(x);
+}
+
+func double atan(double x) {
+    return __native_atan(x);
+}
+
+func double atan2(double x, double y) {
+    return __native_atan2(x, y);
+}
+
+func double sqrt(double x) {
+    return __native_sqrt(x);
+}
+
+func double log(double x) {
+    return __native_log(x);
+}
+
+func double log10(double x) {
+    return __native_log10(x);
+}
+
+func double exp(double x) {
+    return __native_exp(x);
+}
+
+func double floor(double x) {
+    return __native_floor(x);
+}
+
+func double ceil(double x) {
+    return __native_ceil(x);
+}
+
 func int abs(int n) {
     if (n < 0) {
         int neg = 0 - n;
@@ -32,12 +86,12 @@ func int min(int a, int b) {
     return b;
 }
 
-func double dmax(double a, double b) {
+func double fmax(double a, double b) {
     if (a > b) { return a; }
     return b;
 }
 
-func double dmin(double a, double b) {
+func double fmin(double a, double b) {
     if (a < b) { return a; }
     return b;
 }
