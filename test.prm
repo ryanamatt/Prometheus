@@ -1,8 +1,0 @@
-use math;
-
-print(PI);
-print(TAU);
-print(e);
-print(sin(1));
-print(cos(1));
-print(tan(1));
