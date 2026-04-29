@@ -680,6 +680,31 @@ PrometheusValue Interpreter::visit(ASTNode* node) {
         return std::monostate{};
     }
 
+    else if (ForInNode* n = dynamic_cast<ForInNode*>(node)) {
+        PrometheusValue iterable = visit(n->list_expr.get());
+
+        if (!std::holds_alternative<PrometheusListPtr>(iterable)) {
+            throw TypeException(
+                "for-in loop requires a list, but got '" + type_name(iterable) + "'");
+        }
+
+        PrometheusListPtr lst = std::get<PrometheusListPtr>(iterable);
+
+        for (const PrometheusValue& elem : lst->elements) {
+            push_scope();
+            // Declare the loop variable in this iteration's scope,
+            // coercing to the declared type just like a typed declaration would.
+            PrometheusValue loop_val = coerce_to_declared(n->var_type, n->var_name, elem);
+            declare_var(n->var_name, loop_val);
+
+            for (auto& stmt : n->body)
+                visit(stmt.get());
+
+            pop_scope();
+        }
+        return std::monostate{};
+    }
+
     // ------------------------------------------------------------------
     // Function declaration
     // ------------------------------------------------------------------

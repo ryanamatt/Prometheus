@@ -183,6 +183,23 @@ public:
           change_var(std::move(change_var)), do_branch(std::move(do_branch)) {}
 };
 
+/**
+ * @brief Represents a range-based for loop: for (type name : list_expr) { body }
+ */
+class ForInNode : public ASTNode {
+public:
+    std::string var_type;
+    std::string var_name;
+    std::unique_ptr<ASTNode> list_expr;
+    std::vector<std::unique_ptr<ASTNode>> body;
+
+    ForInNode(std::string type, std::string name, 
+              std::unique_ptr<ASTNode> list, 
+              std::vector<std::unique_ptr<ASTNode>> body)
+        : var_type(std::move(type)), var_name(std::move(name)), 
+          list_expr(std::move(list)), body(std::move(body)) {}
+};
+
 struct Parameter {
     std::string type;
     std::string name;
