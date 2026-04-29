@@ -77,6 +77,11 @@ private:
      */
     std::unique_ptr<InputNode> parse_input();
 
+    /**
+     * @brief Parses the range function
+     */
+    std::unique_ptr<RangeNode> parse_range();
+
     /** 
      * @brief Parses an `if (...) { } elif (...) { } else { }` construct.
      */

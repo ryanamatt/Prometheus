@@ -65,8 +65,6 @@ enum class TokenType
     IF,
     ELIF,
     ELSE,
-    PRINT,
-    INPUT,
 
     // Symbols
     ASSIGN,         // =
@@ -96,6 +94,11 @@ enum class TokenType
     // Loops
     WHILE,          // WHILE
     FOR,            // FOR
+
+    // Default Functions
+    PRINT,
+    INPUT,
+    RANGE,
 
     // Funcs
     FUNC,           // FUNC
@@ -142,8 +145,6 @@ inline std::string to_string(TokenType t) {
         case TokenType::IF:         return "IF";
         case TokenType::ELIF:       return "ELIF";
         case TokenType::ELSE:       return "ELSE";
-        case TokenType::PRINT:      return "PRINT";
-        case TokenType::INPUT:      return "INPUT";
 
         // Symbols
         case TokenType::ASSIGN:     return "ASSIGN";
@@ -173,6 +174,11 @@ inline std::string to_string(TokenType t) {
         // Loops
         case TokenType::WHILE:      return "WHILE";
         case TokenType::FOR:        return "FOR";
+
+        // Default Functions
+        case TokenType::PRINT:      return "PRINT";
+        case TokenType::INPUT:      return "INPUT";
+        case TokenType::RANGE:      return "RANGE";
 
         // Funcs
         case TokenType::FUNC:       return "FUNC";

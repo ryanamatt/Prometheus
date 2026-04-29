@@ -16,3 +16,5 @@ prometheus
 
 # Test
 tests/outputs/
+
+test.prm
