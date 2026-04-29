@@ -769,6 +769,7 @@ else if (CallNode* n = dynamic_cast<CallNode*>(node)) {
         // Prepare the function's local execution environment
         Interpreter local_interp(func_node->body);
         local_interp.functions = functions;
+        local_interp.native_functions = native_functions;
 
         // Bind parameters
         for (size_t i = 0; i < total_params; i++) {

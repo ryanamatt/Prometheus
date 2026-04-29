@@ -36,7 +36,7 @@ std::vector<Token> Lexer::tokenize() {
                 current_pos++; 
             }
 
-            else if (std::isalpha(ch)) {
+            else if (std::isalpha(ch) || ch == '_') {
                 tokens.push_back(this->make_identifier());
             }
 

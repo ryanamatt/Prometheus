@@ -16,21 +16,21 @@ void Interpreter::register_math_functions() {
         };
     };
 
-    native_functions["sin"]   = wrap1("sin",   std::sin);
-    native_functions["cos"]   = wrap1("cos",   std::cos);
-    native_functions["tan"]   = wrap1("tan",   std::tan);
-    native_functions["asin"]  = wrap1("asin",  std::asin);
-    native_functions["acos"]  = wrap1("acos",  std::acos);
-    native_functions["atan"]  = wrap1("atan",  std::atan);
-    native_functions["sqrt"]  = wrap1("sqrt",  std::sqrt);
-    native_functions["log"]   = wrap1("log",   std::log);
-    native_functions["log10"] = wrap1("log10", std::log10);
-    native_functions["exp"]   = wrap1("exp",   std::exp);
-    native_functions["floor"] = wrap1("floor", [](double x) { return std::floor(x); });
-    native_functions["ceil"]  = wrap1("ceil",  [](double x) { return std::ceil(x); });
+    native_functions["__native_sin"]   = wrap1("sin",   std::sin);
+    native_functions["__native_cos"]   = wrap1("cos",   std::cos);
+    native_functions["__native_tan"]   = wrap1("tan",   std::tan);
+    native_functions["__native_asin"]  = wrap1("asin",  std::asin);
+    native_functions["__native_acos"]  = wrap1("acos",  std::acos);
+    native_functions["__native_atan"]  = wrap1("atan",  std::atan);
+    native_functions["__native_sqrt"]  = wrap1("sqrt",  std::sqrt);
+    native_functions["__native_log"]   = wrap1("log",   std::log);
+    native_functions["__native_log10"] = wrap1("log10", std::log10);
+    native_functions["__native_exp"]   = wrap1("exp",   std::exp);
+    native_functions["__native_floor"] = wrap1("floor", [](double x) { return std::floor(x); });
+    native_functions["__native_ceil"]  = wrap1("ceil",  [](double x) { return std::ceil(x); });
 
     // atan2(y, x) — two args
-    native_functions["atan2"] = [](std::vector<PrometheusValue> args, int line) -> PrometheusValue {
+    native_functions["__native_atan2"] = [](std::vector<PrometheusValue> args, int line) -> PrometheusValue {
         if (args.size() != 2)
             throw ArgumentCountException("atan2", 2, (int)args.size(), line);
         auto to_d = [&](const PrometheusValue& v) -> double {
