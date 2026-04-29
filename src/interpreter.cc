@@ -583,6 +583,36 @@ PrometheusValue Interpreter::visit(ASTNode* node) {
         }
         return user_input;
     }
+
+    // ------------------------------------------------------------------
+    // Range
+    // ------------------------------------------------------------------
+
+    else if (RangeNode* n = dynamic_cast<RangeNode*>(node)) {
+        int start_val = get_int(visit(n->start.get()));
+        int stop_val  = get_int(visit(n->stop.get()));
+        int step_val  = get_int(visit(n->step.get()));
+
+        if (step_val == 0) {
+            throw RuntimeException("range() step argument must not be zero");
+        }
+
+        auto lst = std::make_shared<PrometheusList>();
+        lst->element_type = "int";
+
+        // Populate the list based on the step direction
+        if (step_val > 0) {
+            for (int i = start_val; i < stop_val; i += step_val)
+                lst->elements.push_back(i);
+        } 
+        
+        else {
+            for (int i = start_val; i > stop_val; i += step_val)
+                lst->elements.push_back(i);
+        }
+
+        return lst;
+    }
  
     // ------------------------------------------------------------------
     // If / elif / else

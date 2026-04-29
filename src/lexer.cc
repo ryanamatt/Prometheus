@@ -182,6 +182,7 @@ Token Lexer::make_identifier() {
         {"input",  TokenType::INPUT},
         {"while",  TokenType::WHILE},
         {"for",    TokenType::FOR},
+        {"range",  TokenType::RANGE},
         {"func",   TokenType::FUNC},
         {"return", TokenType::RETURN},
         {"import", TokenType::IMPORT},

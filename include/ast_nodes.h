@@ -121,6 +121,22 @@ public:
 };
 
 /**
+ * @brief Represents a range() expression that returns a list[int].
+ * Usage: range(stop), range(start, stop), or range(start, stop, step)
+ */
+class RangeNode : public ASTNode {
+public:
+    std::unique_ptr<ASTNode> start;
+    std::unique_ptr<ASTNode> stop;
+    std::unique_ptr<ASTNode> step;
+
+    RangeNode(std::unique_ptr<ASTNode> start, 
+              std::unique_ptr<ASTNode> stop, 
+              std::unique_ptr<ASTNode> step)
+        : start(std::move(start)), stop(std::move(stop)), step(std::move(step)) {}
+};
+
+/**
  * Represents an 'if-else' control flow structure
  */
 class IfNode : public ASTNode {
