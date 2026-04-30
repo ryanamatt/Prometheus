@@ -221,7 +221,7 @@ int DOTVisitor::visit(ASTNode* node) {
         std::string params_str;
         for (size_t i = 0; i < n->params.size(); i++) {
             if (i) params_str += ", ";
-            params_str += n->params[i].first + " " + n->params[i].second;
+            params_str += n->params[i].type + " " + n->params[i].name;
         }
         node_decl(id, "FuncDecl\\n" + escape(n->return_type) + " " +
                       escape(n->name) + "(" + escape(params_str) + ")",

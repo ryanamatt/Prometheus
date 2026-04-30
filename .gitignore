@@ -13,6 +13,7 @@ venv/
 *.o
 *.exe
 prometheus
+prometheus-viz
 
 # Test
 tests/outputs/

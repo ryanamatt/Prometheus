@@ -50,7 +50,7 @@ def main():
     if sys.platform == "win32":
         os.startfile(output_img)
     elif sys.platform == "darwin":
-        subprocess.run(["open", str(output_img)])
+        subprocess.run(["open", str(output_img)], check=False)
     else:
         subprocess.run(["xdg-open", str(output_img)])
 
