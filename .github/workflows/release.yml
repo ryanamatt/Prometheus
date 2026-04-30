@@ -1,0 +1,55 @@
+name: Release Prometheus
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-release:
+    name: Build for ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: prometheus-linux
+            asset_name: prometheus-linux
+          - os: windows-latest
+            artifact_name: prometheus.exe
+            asset_name: prometheus-windows.exe
+          - os: macos-latest
+            artifact_name: prometheus
+            asset_name: prometheus-macos
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up MSYS2 (Windows only)
+        if: matrix.os == 'windows-latest'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: make mingw-w64-ucrt-x86_64-gcc
+
+      - name: Build Prometheus (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: msys2 {0}
+        run: make
+
+      - name: Build Prometheus (Unix)
+        if: matrix.os != 'windows-latest'
+        run: make
+
+      - name: Rename Binary for Release
+        shell: bash
+        run: mv ${{ matrix.artifact_name }} ${{ matrix.asset_name }}
+
+      - name: Create Release and Upload Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.asset_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

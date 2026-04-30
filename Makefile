@@ -8,8 +8,16 @@ SOURCES = main.cc lexer.cc parser.cc interpreter.cc stdlib/math.cc stdlib/random
 OBJECTS = $(SOURCES:%.cc=$(BIN_DIR)/%.o)
 
 ifeq ($(OS), Windows_NT)
+	TARGET = prometheus.exe
+	TARGET_VIZ = prometheus_viz.exe
+    PREFIX = C:/ProgramData/prometheus
+    INSTALL_BIN = $(PREFIX)
 	PYTEST = venv/scripts/pytest
 else
+	TARGET = prometheus
+	TARGET_VIZ = prometheus_viz
+    PREFIX = /usr/local
+    INSTALL_BIN = $(PREFIX)/bin
 	PYTEST = venv/bin/pytest
 endif
 
@@ -18,7 +26,7 @@ endif
 all: prometheus
 
 prometheus: $(BIN_DIR) $(OBJECTS)
-	$(CXX) -o $@ $(OBJECTS) $(CFLAGS)
+	$(CXX) -o $(TARGET) $(OBJECTS) $(CFLAGS)
 
 test: clean prometheus
 	$(PYTEST)
@@ -30,7 +38,34 @@ debug: clean prometheus
 # visualize
 visualize: CFLAGS += -DVISUALIZE
 visualize: $(BIN_DIR) $(OBJECTS) $(BIN_DIR)/dot_visitor.o
-	$(CXX) -o prometheus-viz $(OBJECTS) $(BIN_DIR)/dot_visitor.o $(CFLAGS)
+	$(CXX) -o $(TARGET_VIZ) $(OBJECTS) $(BIN_DIR)/dot_visitor.o $(CFLAGS)
+
+
+install: $(TARGET)
+	@echo "Installing to $(PREFIX)..."
+ifeq ($(OS), Windows_NT)
+	mkdir -p $(PREFIX)
+	cp $(TARGET) $(PREFIX)/
+	cp -r stdlib $(PREFIX)/
+	@echo "Please add $(PREFIX) to your PATH environment variable."
+else
+	install -d $(INSTALL_BIN)
+	install -m 755 $(TARGET) $(INSTALL_BIN)
+	install -d $(PREFIX)/share/prometheus/stdlib
+	install -m 644 stdlib/*.prm $(PREFIX)/share/prometheus/stdlib/
+endif
+
+uninstall:
+ifeq ($(OS), Windows_NT)
+	@echo "Removing Prometheus from $(PREFIX)..."
+	rm -rf $(PREFIX)
+	@echo "Note: You must manually remove $(PREFIX) from your PATH environment variable."
+else
+	@echo "Removing Prometheus from $(PREFIX)..."
+	rm -f $(INSTALL_BIN)/$(TARGET)
+	rm -rf $(PREFIX)/share/prometheus
+	@echo "Uninstall complete."
+endif
 
 $(BIN_DIR)/%.o: $(SRC_DIR)/%.cc
 	$(CXX) -c -o $@ $< $(CFLAGS)

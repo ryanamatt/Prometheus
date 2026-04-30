@@ -17,6 +17,9 @@ Interpreter::Interpreter(const std::vector<std::unique_ptr<ASTNode>>& nodes,
                          std::string base_dir)
     : nodes(&nodes), base_dir(std::move(base_dir))
 {
+    // Inject the version into the global scope
+    global_vars["__version__"] = PROMETHEUS_VERSION;
+
     // The global scope is always present at index 0.
     scope_stack.push_back(std::move(global_vars));
 }
@@ -72,12 +75,22 @@ void Interpreter::init_stdlib_registry() {
     if (!stdlib_registry.empty()) return;
 
     std::filesystem::path stdlib_dir;
+    
+    // Check Environment Variable 
     if (const char* env = std::getenv("PROMETHEUS_STDLIB")) {
         stdlib_dir = env;
-    } else if (!base_dir.empty()) {
-        stdlib_dir = std::filesystem::path(base_dir) / "stdlib";
-    } else {
+    } 
+    // Check Local Directory (Development mode) 
+    else if (std::filesystem::exists("stdlib")) {
         stdlib_dir = std::filesystem::path("stdlib");
+    }
+    // Check Global Installation Path (Release mode)
+    else {
+#ifdef _WIN32
+        stdlib_dir = "C:/ProgramData/prometheus/stdlib";
+#else
+        stdlib_dir = "/usr/local/share/prometheus/stdlib";
+#endif
     }
 
     std::error_code ec;

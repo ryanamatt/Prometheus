@@ -8,6 +8,7 @@
 #include <unordered_set>
 #include <vector>
 #include <random>
+#include "version.h"
 #include "ast_nodes.h"
 #include "exceptions.h"
 #include "visitor.h"

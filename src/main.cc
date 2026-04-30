@@ -50,7 +50,14 @@ int main (int argc, char* argv[])
         return 0;
     }
 
-    std::string filename = argv[1];
+    std::string first_arg = argv[1];
+
+    if (first_arg == "--version" || first_arg == "-v") {
+        std::cout << PROMETHEUS_VERSION << std::endl;
+        return 0;
+    }
+
+    std::string filename = first_arg;
 #ifdef DEBUG
     std::cout << "Filename: " << filename << std::endl;
 #endif
