@@ -1,5 +1,5 @@
 CXX = g++
-CFLAGS = -std=c++17 -Wall -Wextra -Werror -I include -static -static-libgcc -static-libstdc++
+CFLAGS = -std=c++17 -Wall -Wextra -Werror -I include
 SRC_DIR = src
 BIN_DIR = bin
 
@@ -8,6 +8,7 @@ SOURCES = main.cc lexer.cc parser.cc interpreter.cc stdlib/math.cc stdlib/random
 OBJECTS = $(SOURCES:%.cc=$(BIN_DIR)/%.o)
 
 ifeq ($(OS), Windows_NT)
+	CFLAGS += -static -static-libgcc -static-libstdc++
 	TARGET = prometheus.exe
 	TARGET_VIZ = prometheus_viz.exe
     PREFIX = C:/ProgramData/prometheus
@@ -26,7 +27,7 @@ endif
 all: prometheus
 
 prometheus: $(BIN_DIR) $(OBJECTS)
-	$(CXX) -o $(TARGET) $(OBJECTS) $(CFLAGS)
+	$(CXX) -o $(TARGET) $(OBJECTS) $(CFLAGS) $(LDFLAGS)
 
 test: clean prometheus
 	$(PYTEST)
