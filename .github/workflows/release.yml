@@ -45,7 +45,13 @@ jobs:
 
       - name: Rename Binary for Release
         shell: bash
-        run: mv ${{ matrix.artifact_name }} ${{ matrix.asset_name }}
+        run: |
+          # Use the actual filename produced by the Makefile 
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            mv prometheus.exe ${{ matrix.asset_name }}
+          else
+            mv prometheus ${{ matrix.asset_name }}
+          fi
 
       - name: Create Release and Upload Asset
         uses: softprops/action-gh-release@v2
