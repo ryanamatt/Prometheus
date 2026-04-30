@@ -2,6 +2,16 @@
 #
 # Loaded lazily on `use random;
 
+# Providing the same seed will produce the same sequence of numbers.
+func void seed(int n) {
+    __native_seed(n);
+}
+
+# Returns the last seed that was manually set
+func int get_seed() {
+    return __native_get_seed();
+}
+
 # Returns a random float between 0.0 and 1.0
 func double random() {
     return __native_random();

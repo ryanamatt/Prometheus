@@ -7,6 +7,25 @@ void Interpreter::register_random_functions() {
     std::random_device rd;
     generator.seed(rd());
 
+    // __native_seed() -> sets the seed.
+    native_functions["__native_seed"] = [this](std::vector<PrometheusValue> args, int line) -> PrometheusValue {
+        if (args.size() != 1) 
+            throw ArgumentCountException("seed", 1, (int)args.size(), line);
+            
+        int s = std::get<int>(args[0]);
+        this->last_seed = s;
+        generator.seed(s);   // Resets the engine state to the provided seed
+        return 0;            // Or a 'null' type if Prometheus supports it
+
+        throw TypeException("'seed' requires an integer argument", line);
+    };
+
+    native_functions["__native_get_seed"] = [this](std::vector<PrometheusValue> args, int line) -> PrometheusValue {
+        (void)args;
+        (void)line;
+        return this->last_seed;
+    };
+
     // __native_random() -> returns double between [0.0, 1.0)
     native_functions["__native_random"] = [this](std::vector<PrometheusValue> args, int line) -> PrometheusValue {
         (void)args;
