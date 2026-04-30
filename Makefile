@@ -20,7 +20,7 @@ all: prometheus
 prometheus: $(BIN_DIR) $(OBJECTS)
 	$(CXX) -o $@ $(OBJECTS) $(CFLAGS)
 
-test: prometheus
+test: clean prometheus
 	$(PYTEST)
 
 # debug
