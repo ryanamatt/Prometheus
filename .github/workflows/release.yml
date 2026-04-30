@@ -10,20 +10,17 @@ permissions:
 
 jobs:
   build-and-release:
-    name: Build for ${{ matrix.os }}
+    name: Build and Package for ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
           - os: ubuntu-latest
-            artifact_name: prometheus-linux
-            asset_name: prometheus-linux
+            asset_name: prometheus-linux.tar.gz
           - os: windows-latest
-            artifact_name: prometheus.exe
-            asset_name: prometheus-windows.exe
+            asset_name: prometheus-windows.zip
           - os: macos-latest
-            artifact_name: prometheus
-            asset_name: prometheus-macos
+            asset_name: prometheus-macos.tar.gz
 
     steps:
       - name: Checkout Code
@@ -46,15 +43,22 @@ jobs:
         if: matrix.os != 'windows-latest'
         run: make
 
-      - name: Rename Binary for Release
-        shell: bash
+      - name: Package Assets (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
         run: |
-          # Use the actual filename produced by the Makefile 
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            mv prometheus.exe ${{ matrix.asset_name }}
-          else
-            mv prometheus ${{ matrix.asset_name }}
-          fi
+          mkdir release_dist
+          cp prometheus.exe release_dist/
+          cp -r stdlib release_dist/
+          Compress-Archive -Path release_dist/* -DestinationPath ${{ matrix.asset_name }}
+
+      - name: Package Assets (Unix)
+        if: matrix.os != 'windows-latest'
+        run: |
+          mkdir release_dist
+          cp prometheus release_dist/
+          cp -r stdlib release_dist/
+          tar -czvf ${{ matrix.asset_name }} -C release_dist .
 
       - name: Create Release and Upload Asset
         uses: softprops/action-gh-release@v2
