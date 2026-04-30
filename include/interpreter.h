@@ -7,7 +7,9 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <random>
 #include "ast_nodes.h"
+#include "exceptions.h"
 #include "visitor.h"
 
 /**
@@ -47,6 +49,9 @@ private:
     /** Native (C++) function table populated by register_math_functions(). */
     std::unordered_map<std::string, NativeFunction> native_functions;
 
+    /** */
+    std::mt19937 generator; 
+
     // ------------------------------------------------------------------
     // Import / use support
     // ------------------------------------------------------------------
@@ -76,6 +81,9 @@ private:
 
     /** Register C++ math functions as native callables. */
     void register_math_functions();
+
+    /** Register C++ random functions as native callables. */
+    void register_random_functions();
 
     /**
      * @brief Resolve and initialise stdlib_registry if it hasn't been yet.

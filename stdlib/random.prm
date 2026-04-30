@@ -1,0 +1,23 @@
+# stdlib/random.prm — Prometheus Standard Library: Random Module
+#
+# Loaded lazily on `use random;
+
+# Returns a random float between 0.0 and 1.0
+func double random() {
+    return __native_random();
+}
+
+# Returns a random integer between min and max (inclusive)
+func int randint(int min, int max) {
+    return __native_randint(min, max);
+}
+
+# Returns a random float between min and max
+func double uniform(double min, double max) {
+    return min + (max - min) * __native_random();
+}
+
+# Returns a random boolean
+func bool choice_bool() {
+    return __native_random() > 0.5;
+}

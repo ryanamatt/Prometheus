@@ -1,5 +1,4 @@
 #include <cmath>
-#include "exceptions.h"
 #include "interpreter.h"
 
 void Interpreter::register_math_functions() {

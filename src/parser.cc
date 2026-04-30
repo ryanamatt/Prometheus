@@ -1018,8 +1018,8 @@ std::unique_ptr<ASTNode> Parser::parse_call_special(std::string name) {
  * This covers common forms such as:
  *   import utils;
  *   import utils.prm;
- *   import helpers/math;
- *   import helpers/math.prm;
+ *   import helpers/utils;
+ *   import helpers/utils.prm;
  *   import ../shared/utils.prm;
  */
 std::unique_ptr<ImportNode> Parser::parse_import() {

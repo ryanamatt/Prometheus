@@ -144,6 +144,9 @@ void Interpreter::exec_use(UseNode* node) {
     if (node->module_name == "math" && !loaded_modules.count("math"))
         register_math_functions();
 
+    else if (node->module_name == "random" && !loaded_modules.count("random"))
+        register_random_functions();
+
     if (loaded_modules.count(node->module_name)) return;
 
     init_stdlib_registry();
