@@ -318,7 +318,7 @@ public:
 /** `list[type] name = expr;` */
 class ListDeclNode : public ASTNode {
 public:
-    std::string element_type;
+    std::string element_type; // "int", "double", "str", "bool"
     std::string name;
     std::unique_ptr<ASTNode> value_node;
 

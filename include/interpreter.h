@@ -77,7 +77,14 @@ private:
     /** Register C++ math functions as native callables. */
     void register_math_functions();
 
-    /** Locate and populate stdlib_registry (no-op after first call). */
+    /**
+     * @brief Resolve and initialise stdlib_registry if it hasn't been yet.
+     *        Searches for the stdlib directory in these locations in order:
+     *          1. $PROMETHEUS_STDLIB  (environment variable)
+     *          2. <base_dir>/stdlib
+     *          3. <executable_dir>/stdlib   (not easily available; skipped)
+     *          4. ./stdlib
+     */
     void init_stdlib_registry();
 
     /** Execute an `import path;` node. */

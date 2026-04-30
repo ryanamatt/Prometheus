@@ -46,8 +46,7 @@ class EOFNode;
  * Each concrete node type has a corresponding `visit` overload.
  * Implementors (Interpreter, DOTVisitor, …) derive from this class
  * and provide all overloads.  The dispatch happens via ASTNode::accept(),
- * which calls the right overload through static typing — no dynamic_cast
- * anywhere in the hot path.
+ * which calls the right overload through static typing.
  *
  * Return type is PrometheusValue so that the interpreter can use the
  * visitor directly as an expression evaluator.  Non-expression visitors
@@ -66,24 +65,30 @@ public:
     virtual PrometheusValue visit(UnaryOpNode* node) = 0;
     virtual PrometheusValue visit(VarDeclNode* node) = 0;
     virtual PrometheusValue visit(IncrementDecrementNode* node) = 0;
+
     virtual PrometheusValue visit(PrintNode* node) = 0;
     virtual PrometheusValue visit(InputNode* node) = 0;
     virtual PrometheusValue visit(RangeNode* node) = 0;
+
     virtual PrometheusValue visit(IfNode* node) = 0;
     virtual PrometheusValue visit(WhileNode* node) = 0;
     virtual PrometheusValue visit(ForNode* node) = 0;
     virtual PrometheusValue visit(ForInNode* node) = 0;
+
     virtual PrometheusValue visit(FunctionDeclNode* node) = 0;
     virtual PrometheusValue visit(ReturnNode* node) = 0;
     virtual PrometheusValue visit(CallNode* node) = 0;
+
     virtual PrometheusValue visit(ListLiteralNode* node) = 0;
     virtual PrometheusValue visit(ListDeclNode* node) = 0;
     virtual PrometheusValue visit(ListIndexNode* node) = 0;
     virtual PrometheusValue visit(ListAssignNode* node) = 0;
     virtual PrometheusValue visit(ListAppendNode* node) = 0;
     virtual PrometheusValue visit(ListLengthNode* node) = 0;
+
     virtual PrometheusValue visit(ImportNode* node) = 0;
     virtual PrometheusValue visit(UseNode* node) = 0;
+
     virtual PrometheusValue visit(EOFNode* node) = 0;
 };
 
