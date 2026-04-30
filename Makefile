@@ -1,5 +1,5 @@
 CXX = g++
-CFLAGS = -std=c++17 -Wall -Wextra -Werror -I include
+CFLAGS = -std=c++17 -Wall -Wextra -Werror -I include -static -static-libgcc -static-libstdc++
 SRC_DIR = src
 BIN_DIR = bin
 

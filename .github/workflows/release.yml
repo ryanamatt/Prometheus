@@ -37,11 +37,15 @@ jobs:
       - name: Build Prometheus (Windows)
         if: matrix.os == 'windows-latest'
         shell: msys2 {0}
-        run: make
+        run: |
+            make clean
+            make
 
       - name: Build Prometheus (Unix)
         if: matrix.os != 'windows-latest'
-        run: make
+        run: |
+            make clean
+            make
 
       - name: Package Assets (Windows)
         if: matrix.os == 'windows-latest'
