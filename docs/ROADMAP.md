@@ -8,23 +8,13 @@
     func int, int getCoords() {  
         return 10, 20;  
     }  
-    int x, int y \= getCoords();
-
-* **Module System (Imports)**: Enable code reuse and library management.  
-  * **Syntax**: import "filename"; for local files or import "libName"; for standard libraries.
-
-* **For Each Loop**: Simplified iteration over collections.  
-  * **Syntax**: for (type item in listName) { ... }  
-  * **Example**:  
-    for (int n in nums) {  
-        print(n);  
-    }
+    int x, int y = getCoords();
 
 * **Error Handling (Try/Catch/Throw)**: Robust mechanism for catching and raising runtime errors.  
   * **Syntax**:  
     try {  
         \# problematic code  
-        if (x \< 0\) {  
+        if (x < 0) {  
             throw "Value cannot be negative";  
         }  
     } catch (str error) {  
@@ -33,12 +23,6 @@
 
 ## **Standard Library**
 
-* **Range Function**: Generates a list of integers for iteration.  
-  * **Syntax**: range(start, end)  
-  * **Usage**: for (int i in range(0, 10)) { ... }  
-* **Math Library (math)**:  
-  * Core mathematical functions: sqrt(x), sin(x), cos(x), tan(x).  
-  * Constants: PI, E.  
 * **File I/O Library (io)**:  
   * Functions for interacting with the filesystem:  
     * open(path, mode): Returns a file handle.  

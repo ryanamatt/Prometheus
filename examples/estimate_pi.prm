@@ -1,0 +1,18 @@
+use random;
+
+func double estimate_pi(int num_points) {
+    int points_inside_circle = 0;
+
+    for (int _ : range(num_points)) {
+        double x = uniform(-1, 1);
+        double y = uniform(-1, 1);
+
+        if (x ** 2 + y ** 2 <= 1) {
+            points_inside_circle++;
+        }
+    }
+
+    return 4 * points_inside_circle / num_points;
+}
+
+print("Estimated Pi:", estimate_pi(100000));
