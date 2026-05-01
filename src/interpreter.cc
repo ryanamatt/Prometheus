@@ -454,6 +454,10 @@ PrometheusValue Interpreter::visit(VarDeclNode* n) {
         value = coerce_to_declared(n->var_type, n->name, value);
         declare_var(n->name, value);
     } else {
+        // Bare assignment (e.g., x = 10)
+        if (!has_var(n->name))
+            throw UndefinedVariableException(n->name, n->token_line);
+
         // Bare re-assignment — update the nearest existing binding.
         set_var(n->name, value);
     }
