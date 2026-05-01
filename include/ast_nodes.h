@@ -111,10 +111,11 @@ public:
     std::string var_type;
     std::string name;
     std::unique_ptr<ASTNode> value_node;
+    int token_line;
 
-    VarDeclNode(std::string var_type, std::string name, std::unique_ptr<ASTNode> value_node)
+    VarDeclNode(std::string var_type, std::string name, std::unique_ptr<ASTNode> value_node, int token_line)
         : var_type(std::move(var_type)), name(std::move(name)),
-          value_node(std::move(value_node)) {}
+          value_node(std::move(value_node)), token_line(token_line) {}
 
     PrometheusValue accept(Visitor& v) override { return v.visit(this); }
 };

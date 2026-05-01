@@ -212,8 +212,9 @@ std::unique_ptr<ASTNode> Parser::parse_declaration() {
             current_token().get_line());
     }
     
+    int line = current_token().get_line();
     eat(TokenType::SEMICOLON);
-    return std::make_unique<VarDeclNode>(type_token.get_value(), name_token.get_value(), std::move(value_node));
+    return std::make_unique<VarDeclNode>(type_token.get_value(), name_token.get_value(), std::move(value_node), line);
 }
 
 std::unique_ptr<ListDeclNode> Parser::parse_list_decl() {
@@ -283,8 +284,9 @@ std::unique_ptr<ASTNode> Parser::parse_identifier() {
             "assignment to '" + id_token.get_value() + "'",
             current_token().get_line());
     }
+    int line = current_token().get_line();
     eat(TokenType::SEMICOLON);
-    return std::make_unique<VarDeclNode>(id_token.get_value(), id_token.get_value(), std::move(value_node));
+    return std::make_unique<VarDeclNode>(id_token.get_value(), id_token.get_value(), std::move(value_node), line);
 }
 
 std::unique_ptr<PrintNode> Parser::parse_print() {
