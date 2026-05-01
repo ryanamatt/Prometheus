@@ -379,6 +379,20 @@ public:
     PrometheusValue accept(Visitor& v) override { return v.visit(this); }
 };
 
+/**`name.insert(i, x)` -inserts x at index i */
+class ListInsertNode : public ASTNode {
+public:
+    std::string name;
+    std::unique_ptr<ASTNode> index;
+    std::unique_ptr<ASTNode> value;
+
+    explicit ListInsertNode(std::string name, std::unique_ptr<ASTNode> index, 
+        std::unique_ptr<ASTNode> value)
+        : name(std::move(name)), index(std::move(index)), value(std::move(value)) {}
+
+    PrometheusValue accept(Visitor& v) override { return v.visit(this); }
+};
+
 // ---------------------------------------------------------------------------
 // Modules
 // ---------------------------------------------------------------------------

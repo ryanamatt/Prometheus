@@ -168,6 +168,7 @@ public:
     PrometheusValue visit(ListAssignNode* node) override;
     PrometheusValue visit(ListAppendNode* node) override;
     PrometheusValue visit(ListLengthNode* node) override;
+    PrometheusValue visit(ListInsertNode* n) override;
 
     PrometheusValue visit(ImportNode* node) override;
     PrometheusValue visit(UseNode* node) override;

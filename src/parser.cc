@@ -145,6 +145,30 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
                 return std::make_unique<ListLengthNode>(id.get_value());
             }
 
+            if (method == "insert") {
+                if (current_token().get_token() != TokenType::LPAREN)
+                    throw MissingBraceException('(', current_token().get_line());
+                eat(TokenType::LPAREN);
+
+                auto index = parse_expression();
+
+                if (current_token().get_token() != TokenType::COMMA)
+                    throw InvalidArgumentException("insert(idx, val)", ",", 
+                        current_token().get_value(), current_token().get_line());
+                eat(TokenType::COMMA);
+                auto value = parse_expression();
+
+                if (current_token().get_token() != TokenType::RPAREN)
+                    throw MissingBraceException('(', id.get_line());
+                eat(TokenType::RPAREN);
+                if (current_token().get_token() != TokenType::SEMICOLON)
+                    throw MissingSemicolonException("insert()", current_token().get_line());
+                eat(TokenType::SEMICOLON);
+
+                return std::make_unique<ListInsertNode>(id.get_value(), std::move(index), 
+                    std::move(value));
+            }
+
             throw ParseException(
                 "Unknown method '" + method + "' on '" + id.get_value() + "'",
                 current_token().get_line());

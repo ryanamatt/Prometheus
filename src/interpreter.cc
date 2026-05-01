@@ -834,6 +834,23 @@ PrometheusValue Interpreter::visit(ListLengthNode* n) {
 }
 
 // ----------------------------------------------------------------------------
+// List insert
+// ----------------------------------------------------------------------------
+
+PrometheusValue Interpreter::visit(ListInsertNode* n) {
+    PrometheusValue var_name = get_var(n->name);
+    if (!std::holds_alternative<PrometheusListPtr>(var_name))
+        throw TypeException("'" + n->name + "' is not a list");
+    auto lst_name = std::get<PrometheusListPtr>(var_name);
+
+    int index  = get_int(visit(n->index.get()));
+    PrometheusValue value = visit(n->value.get()); 
+    lst_name->elements.insert(lst_name->elements.begin() + index, 
+        coerce_to_element(lst_name->element_type, visit(n->value.get())));
+    return std::monostate{};
+}
+
+// ----------------------------------------------------------------------------
 // Import
 // ----------------------------------------------------------------------------
 
