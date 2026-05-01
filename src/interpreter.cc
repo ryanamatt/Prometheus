@@ -97,12 +97,14 @@ void Interpreter::init_stdlib_registry() {
     if (!std::filesystem::is_directory(stdlib_dir, ec)) return;
 
     for (const auto& entry : std::filesystem::directory_iterator(stdlib_dir, ec)) {
-        if (ec) break;
-        if (!entry.is_regular_file()) continue;
-        auto p = entry.path();
-        if (p.extension() == ".prm")
-            stdlib_registry[p.stem().string()] = p.string();
+    if (ec) break;
+    if (!entry.is_regular_file()) continue;
+    auto p = entry.path();
+    if (p.extension() == ".prm") {
+        // Change: Convert the path to an absolute path before storing it
+        stdlib_registry[p.stem().string()] = std::filesystem::absolute(p).string();
     }
+}
 }
 
 // ============================================================================
