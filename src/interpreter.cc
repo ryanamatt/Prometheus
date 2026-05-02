@@ -3,7 +3,6 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
-#include <algorithm>
 #include "exceptions.h"
 #include "interpreter.h"
 #include "lexer.h"
