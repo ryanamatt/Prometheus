@@ -13,6 +13,7 @@
 #include "builtins.h"
 #include "stdlib/math_functions.h"
 #include "stdlib/random_functions.h"
+#include "stdlib/time_functions.h"
 #include "exceptions.h"
 #include "visitor.h"
 
