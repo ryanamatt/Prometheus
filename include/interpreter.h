@@ -10,6 +10,7 @@
 #include <random>
 #include "version.h"
 #include "ast_nodes.h"
+#include "builtins.h"
 #include "exceptions.h"
 #include "visitor.h"
 
@@ -26,9 +27,6 @@
  */
 class Interpreter : public Visitor {
 private:
-    using NativeFunction =
-        std::function<PrometheusValue(std::vector<PrometheusValue>, int)>;
-
     // ------------------------------------------------------------------
     // State
     // ------------------------------------------------------------------
@@ -148,10 +146,6 @@ public:
     PrometheusValue visit(UnaryOpNode* node) override;
     PrometheusValue visit(VarDeclNode* node) override;
     PrometheusValue visit(IncrementDecrementNode* node) override;
-
-    PrometheusValue visit(PrintNode* node) override;
-    PrometheusValue visit(InputNode* node) override;
-    PrometheusValue visit(RangeNode* node) override;
 
     PrometheusValue visit(IfNode* node) override;
     PrometheusValue visit(WhileNode* node) override;
