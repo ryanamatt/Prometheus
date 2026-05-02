@@ -18,6 +18,11 @@ void runREPL() {
     std::string line;
 
     std::unordered_map<std::string, PrometheusValue> globalVariables;
+    // In interactive (REPL) mode there is no source file, so use sentinels
+    // that match Python's own behaviour for the interactive session.
+    globalVariables["__name__"] = std::string("__repl__");
+    globalVariables["__file__"] = std::string("<repl>");
+    globalVariables["__dir__"]  = std::string("");
 
     std::cout << "Prometheus REPL — type 'exit' to quit." << std::endl << std::endl;
 
@@ -132,7 +137,17 @@ int main (int argc, char* argv[])
         // Interpret
         // ----------------------------------------------------------------
         std::string base_dir = std::filesystem::path(filename).parent_path().string();
-        Interpreter interpreter(nodes, {}, base_dir);
+
+        // Resolve the script to an absolute path so __file__ is always
+        // unambiguous, even when the user supplies a relative path.
+        std::string abs_file = std::filesystem::weakly_canonical(filename).string();
+
+        std::unordered_map<std::string, PrometheusValue> initial_vars;
+        initial_vars["__name__"] = std::string("__main__");
+        initial_vars["__file__"] = abs_file;
+        initial_vars["__dir__"]  = base_dir;
+
+        Interpreter interpreter(nodes, std::move(initial_vars), base_dir);
         std::unordered_map<std::string, PrometheusValue> variables = interpreter.interpret();
 
 #ifdef DEBUG
