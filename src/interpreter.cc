@@ -162,10 +162,10 @@ void Interpreter::exec_import(ImportNode* node) {
 
 void Interpreter::exec_use(UseNode* node) {
     if (node->module_name == "math" && !loaded_modules.count("math"))
-        register_math_functions();
+        register_math_functions(native_functions);
 
     else if (node->module_name == "random" && !loaded_modules.count("random"))
-        register_random_functions();
+        register_random_functions(native_functions, generator, last_seed);
 
     if (loaded_modules.count(node->module_name)) return;
 
