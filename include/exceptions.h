@@ -223,6 +223,25 @@ private:
 };
 
 /**
+ * @brief Thrown when there is an invalid argument.
+ */
+class InvalidArgumentException : public RuntimeException {
+public:
+    explicit InvalidArgumentException(const std::string& func_name,
+                                    std::string expected, std::string got,
+                                    int line = 0)
+        : RuntimeException(build_msg(func_name, expected, got), line) {}
+
+private:
+    static std::string build_msg(const std::string& name, std::string expected, std::string got) {
+        std::ostringstream oss;
+        oss << "Function '" << name << "' expects " << expected
+            << " argument(s) but got " << got;
+        return oss.str();
+    }
+};
+
+/**
  * @brief Thrown when an operation receives a value of the wrong type
  *        (e.g., a string where a number is expected).
  */

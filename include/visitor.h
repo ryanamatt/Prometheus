@@ -34,6 +34,10 @@ class ListIndexNode;
 class ListAssignNode;
 class ListAppendNode;
 class ListLengthNode;
+class ListInsertNode;
+class ListPopNode;
+class ListRemoveNode;
+class ListClearNode;
 
 class ImportNode;
 class UseNode;
@@ -85,6 +89,10 @@ public:
     virtual PrometheusValue visit(ListAssignNode* node) = 0;
     virtual PrometheusValue visit(ListAppendNode* node) = 0;
     virtual PrometheusValue visit(ListLengthNode* node) = 0;
+    virtual PrometheusValue visit(ListInsertNode* node) = 0;
+    virtual PrometheusValue visit(ListPopNode* node) = 0;
+    virtual PrometheusValue visit(ListRemoveNode* node) = 0;
+    virtual PrometheusValue visit(ListClearNode* node) = 0;
 
     virtual PrometheusValue visit(ImportNode* node) = 0;
     virtual PrometheusValue visit(UseNode* node) = 0;
