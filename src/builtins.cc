@@ -66,8 +66,9 @@ void register_builtins(
     // trailing newline.  Returns the printed string.
     // -----------------------------------------------------------------------
     native_functions["print"] = [](std::vector<PrometheusValue> args, int line) -> PrometheusValue {
+        (void)line;
         if (args.empty())
-            throw ArgumentCountException("print", 1, 0, line);
+            args.push_back("");
 
         std::stringstream ss;
         for (size_t i = 0; i < args.size(); ++i) {
