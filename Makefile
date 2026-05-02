@@ -4,7 +4,7 @@ SRC_DIR = src
 BIN_DIR = bin
 
 # List of source files 
-SOURCES = main.cc lexer.cc parser.cc interpreter.cc builtins.cc stdlib/math.cc stdlib/random.cc
+SOURCES = main.cc lexer.cc parser.cc interpreter.cc builtins.cc stdlib/math.cc stdlib/random.cc stdlib/time.cc
 OBJECTS = $(SOURCES:%.cc=$(BIN_DIR)/%.o)
 
 ifeq ($(OS), Windows_NT)

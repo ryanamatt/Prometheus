@@ -1,11 +1,8 @@
 #include <cmath>
-#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <algorithm>
-#include "builtins.h"
-#include "exceptions.h"
 #include "interpreter.h"
 #include "lexer.h"
 #include "parser.h"
@@ -166,6 +163,9 @@ void Interpreter::exec_use(UseNode* node) {
 
     else if (node->module_name == "random" && !loaded_modules.count("random"))
         register_random_functions(native_functions, generator, last_seed);
+
+    else if (node -> module_name == "time" && !loaded_modules.count("time"))
+        register_time_functions(native_functions);
 
     if (loaded_modules.count(node->module_name)) return;
 

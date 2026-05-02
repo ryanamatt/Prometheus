@@ -1,0 +1,33 @@
+# stdlib/time.prm — Prometheus Standard Library: Time Module
+#
+# Loaded lazily on `use time;
+
+# Returns current Unix timestamp in seconds
+func int now() {
+    return __native_now();
+}
+
+# Pauses execution for X milliseconds
+func void sleep(int ms) {
+    return __native_sleep(ms);
+}
+
+# High-resolution steady clock for profiling (returns double seconds)
+func double clock() {
+    return __native_clock();
+}
+
+# format_time(timestamp, format_string) -> str
+func str format_time(int timestamp, str format_string) {
+    return __native_format_time(timestamp, format_string);
+}
+
+# iso8601() -> str (current time in YYYY-MM-DDTHH:MM:SSZ)
+func str format_iso8601() {
+    return __native_iso8601();
+}
+
+# ticks() -> double (High-resolution monotonic clock for start/end measurements)
+func double ticks() {
+    return __native_ticks();
+}
