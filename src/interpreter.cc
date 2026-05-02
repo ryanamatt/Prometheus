@@ -16,8 +16,21 @@ Interpreter::Interpreter(const std::vector<std::unique_ptr<ASTNode>>& nodes,
                          std::string base_dir)
     : nodes(&nodes), base_dir(std::move(base_dir))
 {
-    // Inject the version into the global scope
-    global_vars["__version__"] = PROMETHEUS_VERSION;
+    // Inject built-in metadata variables into the global scope.
+    //
+    // __version__  – interpreter version string (always set here)
+    // __name__     – "__main__" when run as a script, "__repl__" in interactive
+    //                mode, or the module's stem name when imported.
+    //                Callers that know the context (main.cc, exec_import) may
+    //                override this immediately after construction.
+    // __file__     – absolute path of the executing source file, or "<repl>"
+    //                when running interactively.  Set by the caller or by
+    //                exec_import for imported modules.
+    // __dir__      – directory containing __file__, or "" in REPL mode.
+    global_vars["__version__"] = std::string(PROMETHEUS_VERSION);
+    if (!global_vars.count("__name__")) global_vars["__name__"] = std::string("__main__");
+    if (!global_vars.count("__file__")) global_vars["__file__"] = std::string("<unknown>");
+    if (!global_vars.count("__dir__"))  global_vars["__dir__"]  = std::string("");
 
     // The global scope is always present at index 0.
     scope_stack.push_back(std::move(global_vars));
@@ -150,9 +163,28 @@ void Interpreter::exec_import(ImportNode* node) {
     std::string saved_base = base_dir;
     base_dir = child_base;
 
+    // Derive the module name from the file stem (e.g. "utils" for utils.prm).
+    std::string module_name = resolved.stem().string();
+
+    // Save the caller's metadata variables so we can restore them once the
+    // imported file has finished executing.
+    PrometheusValue saved_name = get_var("__name__");
+    PrometheusValue saved_file = get_var("__file__");
+    PrometheusValue saved_dir  = get_var("__dir__");
+
+    // Stamp the imported module's own metadata into the shared global scope.
+    set_var("__name__", module_name);
+    set_var("__file__", resolved.string());
+    set_var("__dir__",  child_base);
+
     owned_trees.push_back(std::move(tree));
     for (auto& stmt : owned_trees.back())
         visit(stmt.get());
+
+    // Restore the caller's metadata.
+    set_var("__name__", saved_name);
+    set_var("__file__", saved_file);
+    set_var("__dir__",  saved_dir);
 
     base_dir = saved_base;
 }
