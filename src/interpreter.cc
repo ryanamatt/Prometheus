@@ -4,6 +4,7 @@
 #include <iostream>
 #include <sstream>
 #include <algorithm>
+#include "builtins.h"
 #include "exceptions.h"
 #include "interpreter.h"
 #include "lexer.h"
@@ -23,6 +24,9 @@ Interpreter::Interpreter(const std::vector<std::unique_ptr<ASTNode>>& nodes,
 
     // The global scope is always present at index 0.
     scope_stack.push_back(std::move(global_vars));
+
+    // Register built-in functions (print, input, range).
+    register_builtins(native_functions);
 }
 
 // ============================================================================
@@ -488,56 +492,6 @@ PrometheusValue Interpreter::visit(IncrementDecrementNode* n) {
         : PrometheusValue{new_val};
     set_var(n->name, updated);
     return updated;
-}
-
-// ----------------------------------------------------------------------------
-// Print
-// ----------------------------------------------------------------------------
-
-PrometheusValue Interpreter::visit(PrintNode* n) {
-    std::stringstream ss;
-    for (size_t i = 0; i < n->expressions.size(); ++i) {
-        if (i > 0) ss << " ";
-        ss << value_to_string(visit(n->expressions[i].get()));
-    }
-    std::string output = ss.str();
-    std::cout << output << std::endl;
-    return output;
-}
-
-// ----------------------------------------------------------------------------
-// Input
-// ----------------------------------------------------------------------------
-
-PrometheusValue Interpreter::visit(InputNode* n) {
-    std::cout << n->msg;
-    std::string user_input;
-    if (!std::getline(std::cin, user_input))
-        return std::string{};
-    return user_input;
-}
-
-// ----------------------------------------------------------------------------
-// Range
-// ----------------------------------------------------------------------------
-
-PrometheusValue Interpreter::visit(RangeNode* n) {
-    int start_val = get_int(visit(n->start.get()));
-    int stop_val  = get_int(visit(n->stop.get()));
-    int step_val  = get_int(visit(n->step.get()));
-
-    if (step_val == 0)
-        throw RuntimeException("range() step argument must not be zero");
-
-    auto lst = std::make_shared<PrometheusList>();
-    lst->element_type = "int";
-
-    if (step_val > 0)
-        for (int i = start_val; i < stop_val; i += step_val) lst->elements.push_back(i);
-    else
-        for (int i = start_val; i > stop_val; i += step_val) lst->elements.push_back(i);
-
-    return lst;
 }
 
 // ----------------------------------------------------------------------------

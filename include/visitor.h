@@ -15,10 +15,6 @@ class UnaryOpNode;
 class VarDeclNode;
 class IncrementDecrementNode;
 
-class PrintNode;
-class InputNode;
-class RangeNode;
-
 class IfNode;
 class WhileNode;
 class ForNode;
@@ -69,10 +65,6 @@ public:
     virtual PrometheusValue visit(UnaryOpNode* node) = 0;
     virtual PrometheusValue visit(VarDeclNode* node) = 0;
     virtual PrometheusValue visit(IncrementDecrementNode* node) = 0;
-
-    virtual PrometheusValue visit(PrintNode* node) = 0;
-    virtual PrometheusValue visit(InputNode* node) = 0;
-    virtual PrometheusValue visit(RangeNode* node) = 0;
 
     virtual PrometheusValue visit(IfNode* node) = 0;
     virtual PrometheusValue visit(WhileNode* node) = 0;

@@ -238,9 +238,6 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
         return parse_identifier();
     }
 
-    if (tt == TokenType::PRINT)  return parse_print();
-    if (tt == TokenType::INPUT)  return parse_input();
-    if (tt == TokenType::RANGE)  return parse_range();
     if (tt == TokenType::IF)     return parse_if();
     if (tt == TokenType::WHILE)  return parse_while();
     if (tt == TokenType::FOR)    return parse_for();
@@ -361,106 +358,6 @@ std::unique_ptr<ASTNode> Parser::parse_identifier() {
     int line = current_token().get_line();
     eat(TokenType::SEMICOLON);
     return std::make_unique<VarDeclNode>(id_token.get_value(), id_token.get_value(), std::move(value_node), line);
-}
-
-std::unique_ptr<PrintNode> Parser::parse_print() {
-    Token print_tok = eat(TokenType::PRINT);
- 
-    if (current_token().get_token() != TokenType::LPAREN) {
-        throw MissingBraceException('(', current_token().get_line());
-    }
-    eat(TokenType::LPAREN);
- 
-    if (current_token().get_token() == TokenType::RPAREN) {
-        throw ParseException("print() requires at least one argument", print_tok.get_line());
-    }
- 
-    std::vector<std::unique_ptr<ASTNode>> expressions;
-    expressions.push_back(parse_expression());
- 
-    while (current_token().get_token() == TokenType::COMMA) {
-        eat(TokenType::COMMA);
-        if (current_token().get_token() == TokenType::RPAREN) {
-            throw ParseException("Trailing comma in print() argument list", current_token().get_line());
-        }
-        expressions.push_back(parse_expression());
-    }
- 
-    if (current_token().get_token() != TokenType::RPAREN) {
-        throw MissingBraceException('(', print_tok.get_line());
-    }
-    eat(TokenType::RPAREN);
- 
-    if (current_token().get_token() != TokenType::SEMICOLON) {
-        throw MissingSemicolonException("print() statement", current_token().get_line());
-    }
-    eat(TokenType::SEMICOLON);
-    return std::make_unique<PrintNode>(std::move(expressions));
-}
-
-std::unique_ptr<InputNode> Parser::parse_input() {
-    Token input_tok = eat(TokenType::INPUT);
- 
-    if (current_token().get_token() != TokenType::LPAREN) {
-        throw MissingBraceException('(', current_token().get_line());
-    }
-    eat(TokenType::LPAREN);
- 
-    std::string prompt = "";
-    if (current_token().get_token() == TokenType::STRING) {
-        prompt = eat(TokenType::STRING).get_value();
-    } else if (current_token().get_token() != TokenType::RPAREN) {
-        throw ParseException(
-            "input() prompt must be a string literal",
-            current_token().get_line());
-    }
- 
-    if (current_token().get_token() != TokenType::RPAREN) {
-        throw MissingBraceException('(', input_tok.get_line());
-    }
-    eat(TokenType::RPAREN);
-    return std::make_unique<InputNode>(prompt);
-}
-
-std::unique_ptr<RangeNode> Parser::parse_range() {
-    Token range_tok = eat(TokenType::RANGE);
-    eat(TokenType::LPAREN);
-
-    std::vector<std::unique_ptr<ASTNode>> args;
-    // Parse arguments separated by commas
-    while (current_token().get_token() != TokenType::RPAREN) {
-        args.push_back(parse_expression());
-        if (current_token().get_token() == TokenType::COMMA) {
-            eat(TokenType::COMMA);
-        } else {
-            break;
-        }
-    }
-    eat(TokenType::RPAREN);
-
-    std::unique_ptr<ASTNode> start, stop, step;
-
-    // Logic similar to Python's range()
-    if (args.size() == 1) {
-        // range(stop) -> starts at 0, step is 1
-        start = std::make_unique<NumberNode>(Token(TokenType::NUMBER, "0"));
-        stop  = std::move(args[0]);
-        step  = std::make_unique<NumberNode>(Token(TokenType::NUMBER, "1"));
-    } else if (args.size() == 2) {
-        // range(start, stop) -> step is 1
-        start = std::move(args[0]);
-        stop  = std::move(args[1]);
-        step  = std::make_unique<NumberNode>(Token(TokenType::NUMBER, "1"));
-    } else if (args.size() == 3) {
-        // range(start, stop, step)
-        start = std::move(args[0]);
-        stop  = std::move(args[1]);
-        step  = std::move(args[2]);
-    } else {
-        throw ParseException("range() expects 1, 2, or 3 arguments", range_tok.get_line());
-    }
-
-    return std::make_unique<RangeNode>(std::move(start), std::move(stop), std::move(step));
 }
 
 std::unique_ptr<IfNode> Parser::parse_if() {
@@ -1024,9 +921,6 @@ std::unique_ptr<ASTNode> Parser::parse_term() {
         }
         return std::make_unique<BooleanNode>(bool_tok);
     }
-
-    if (tt == TokenType::INPUT) return parse_input();
-    if (tt == TokenType::RANGE) return parse_range();
 
     if (tt == TokenType::IDENTIFIER) {
         if (peek().get_token() == TokenType::LPAREN) {

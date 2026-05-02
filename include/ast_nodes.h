@@ -133,50 +133,6 @@ public:
 };
 
 // ---------------------------------------------------------------------------
-// Built-in statements
-// ---------------------------------------------------------------------------
-
-/** `print(expr, ...);` */
-class PrintNode : public ASTNode {
-public:
-    std::vector<std::unique_ptr<ASTNode>> expressions;
-
-    explicit PrintNode(std::vector<std::unique_ptr<ASTNode>> expressions)
-        : expressions(std::move(expressions)) {}
-
-    PrometheusValue accept(Visitor& v) override { return v.visit(this); }
-};
-
-/** `input("prompt")` */
-class InputNode : public ASTNode {
-public:
-    std::string msg;
-
-    explicit InputNode(std::string msg) : msg(std::move(msg)) {}
-
-    PrometheusValue accept(Visitor& v) override { return v.visit(this); }
-};
-
-/**
- * @brief `range(stop)` / `range(start, stop)` / `range(start, stop, step)`
- *
- * Evaluates to a list[int].
- */
-class RangeNode : public ASTNode {
-public:
-    std::unique_ptr<ASTNode> start;
-    std::unique_ptr<ASTNode> stop;
-    std::unique_ptr<ASTNode> step;
-
-    RangeNode(std::unique_ptr<ASTNode> start,
-              std::unique_ptr<ASTNode> stop,
-              std::unique_ptr<ASTNode> step)
-        : start(std::move(start)), stop(std::move(stop)), step(std::move(step)) {}
-
-    PrometheusValue accept(Visitor& v) override { return v.visit(this); }
-};
-
-// ---------------------------------------------------------------------------
 // Control flow
 // ---------------------------------------------------------------------------
 

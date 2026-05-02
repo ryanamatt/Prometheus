@@ -95,11 +95,6 @@ enum class TokenType
     WHILE,          // WHILE
     FOR,            // FOR
 
-    // Default Functions
-    PRINT,
-    INPUT,
-    RANGE,
-
     // Funcs
     FUNC,           // FUNC
     RETURN,         // RETURN
@@ -175,11 +170,6 @@ inline std::string to_string(TokenType t) {
         // Loops
         case TokenType::WHILE:      return "WHILE";
         case TokenType::FOR:        return "FOR";
-
-        // Default Functions
-        case TokenType::PRINT:      return "PRINT";
-        case TokenType::INPUT:      return "INPUT";
-        case TokenType::RANGE:      return "RANGE";
 
         // Funcs
         case TokenType::FUNC:       return "FUNC";

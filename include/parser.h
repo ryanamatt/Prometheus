@@ -68,21 +68,6 @@ private:
     std::unique_ptr<ASTNode> parse_identifier();
 
     /** 
-     * @brief Parses a `print(<expr>, ...);` statement.
-     */
-    std::unique_ptr<PrintNode> parse_print();
-
-    /**
-     * @brief Parsers a `str var = input("String");` statement.
-     */
-    std::unique_ptr<InputNode> parse_input();
-
-    /**
-     * @brief Parses the range function
-     */
-    std::unique_ptr<RangeNode> parse_range();
-
-    /** 
      * @brief Parses an `if (...) { } elif (...) { } else { }` construct.
      */
     std::unique_ptr<IfNode> parse_if();
