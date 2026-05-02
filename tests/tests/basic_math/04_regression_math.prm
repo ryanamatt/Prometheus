@@ -1,0 +1,50 @@
+# Regression Test: Math Operations
+# Covering: +, -, *, /, %, **, and Parentheses
+
+# Integer Arithmetic
+int x = 25;
+int y = 4;
+int z = 12;
+
+print(x + y + z);
+print(x - y - z);
+print(x * y);
+print(x / y);
+print(x % y);
+print(z ** 2);
+
+# Double Arithmetic
+double a = 12.5;
+double b = 2.5;
+double c = 0.5;
+
+print();
+print(a + b + c);
+print(a - b);
+print(a * b);
+print(a / b);
+print(b ** 3);
+
+# Mixed Type Operations
+int i = 5;
+double j = 2.5;
+
+print();
+print(i + j);
+print(i * j);
+print(j / i);
+print(i - j);
+
+# Complex Expressions & Order of Operations
+# Testing parentheses and operator precedence
+print();
+print((x + y) * i);       # (25 + 4) * 5
+print(x + (y * i));       # 25 + (4 * 5)
+print((a + b) / (i - 2)); # (12.5 + 2.5) / (5 - 2)
+print(i ** 2 + z / 3);    # (5^2) + (12 / 3)
+
+# Modulo and Power Edge Cases
+print();
+print(100 % 7);
+print(2 ** 10);
+print(10.5 % 3.0);
