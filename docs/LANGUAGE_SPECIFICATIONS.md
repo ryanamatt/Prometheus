@@ -110,11 +110,16 @@ List Functions done by listName.func()
 
 * **Conditionals**: if, elif, and else. Parentheses are required.  
 * **Loops**:  
-  * **While Loop**: while (condition) { ... }  
-  * **Standard For Loop**: Requires a trailing semicolon in the update expression.
+  * **While Loop**: 
+  
+```{Prometheus}
+  while (condition) { ... }
+```  
+
+* **For Loop**
 
 ```{Prometheus}  
-    for (int i = 0; i < 10; i++;) {    
+    for (int i = 0; i < 10; i++) {    
         print(i);    
     }
 ```

@@ -636,7 +636,36 @@ std::unique_ptr<ASTNode> Parser::parse_for() {
         throw MissingSemicolonException("for-loop condition", current_token().get_line());
     }
     eat(TokenType::SEMICOLON);
-    auto change_var = parse_statement();        // update statement
+
+    // Update clause: i++, i--, or identifier assignment (e.g. j = j + 2).
+    // No trailing semicolon is consumed — the closing ')' follows immediately.
+    std::unique_ptr<ASTNode> change_var;
+    if (current_token().get_token() == TokenType::IDENTIFIER &&
+        peek().get_token() == TokenType::INCREMENT) {
+        Token id = eat(TokenType::IDENTIFIER);
+        eat(TokenType::INCREMENT);
+        change_var = std::make_unique<IncrementDecrementNode>(id.get_value(), 1.0);
+    } 
+    
+    else if (current_token().get_token() == TokenType::IDENTIFIER &&
+               peek().get_token() == TokenType::DECREMENT) {
+        Token id = eat(TokenType::IDENTIFIER);
+        eat(TokenType::DECREMENT);
+        change_var = std::make_unique<IncrementDecrementNode>(id.get_value(), -1.0);
+    } 
+    
+    else if (current_token().get_token() == TokenType::IDENTIFIER &&
+               peek().get_token() == TokenType::ASSIGN) {
+        Token id = eat(TokenType::IDENTIFIER);
+        int line = id.get_line();
+        eat(TokenType::ASSIGN);
+        auto value_node = parse_expression();
+        change_var = std::make_unique<VarDeclNode>(id.get_value(), id.get_value(), std::move(value_node), line);
+    } 
+    
+    else
+        throw ParseException("Invalid for-loop update clause", current_token().get_line());
+
     if (current_token().get_token() != TokenType::RPAREN) {
         throw MissingBraceException('(', for_tok.get_line());
     }
