@@ -1,7 +1,10 @@
 #include <cmath>
-#include "interpreter.h"
+#include "stdlib/math_functions.h"
+#include "exceptions.h"
 
-void Interpreter::register_math_functions() {
+void register_math_functions(
+    std::unordered_map<std::string, NativeFunction>& native_functions)
+{
     // Single-arg double → double helpers
     auto wrap1 = [](std::string name, double(*fn)(double)) -> NativeFunction {
         return [name, fn](std::vector<PrometheusValue> args, int line) -> PrometheusValue {

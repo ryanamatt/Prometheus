@@ -11,6 +11,8 @@
 #include "version.h"
 #include "ast_nodes.h"
 #include "builtins.h"
+#include "stdlib/math_functions.h"
+#include "stdlib/random_functions.h"
 #include "exceptions.h"
 #include "visitor.h"
 
@@ -81,12 +83,6 @@ private:
     // ------------------------------------------------------------------
     // Private helpers
     // ------------------------------------------------------------------
-
-    /** Register C++ math functions as native callables. */
-    void register_math_functions();
-
-    /** Register C++ random functions as native callables. */
-    void register_random_functions();
 
     /**
      * @brief Resolve and initialise stdlib_registry if it hasn't been yet.
