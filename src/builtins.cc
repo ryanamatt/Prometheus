@@ -141,4 +141,11 @@ void register_builtins(
 
         return lst;
     };
+
+    native_functions["type"] = [](std::vector<PrometheusValue> args, int line) -> std::string {
+        if (args.size() != 1)
+            throw ArgumentCountException("type", 1, static_cast<int>(args.size()), line);
+
+        return builtin_type_name(args[0]);
+    };
 }
