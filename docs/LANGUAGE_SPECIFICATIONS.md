@@ -95,6 +95,17 @@ Lists are ordered collections of a single type. They use the syntax list\[type\]
   list[str] names = ["Alice", "Bob", "Charlie"];
 ```
 
+Can do nums[i] for specific value at index or assign a value to that index
+
+List Functions done by listName.func()
+
+* .append(value) Add a new value to end of list
+* .len() -> returns int which is length of list
+* .insert(index, value) Add new value at specified index
+* .pop() returns last value and removes it from list.
+* .remove(value) remvoes first instance of value
+*. clear() clears the list
+
 ## **4\. Control Flow**
 
 * **Conditionals**: if, elif, and else. Parentheses are required.  
