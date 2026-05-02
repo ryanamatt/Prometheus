@@ -393,6 +393,43 @@ public:
     PrometheusValue accept(Visitor& v) override { return v.visit(this); }
 };
 
+/**`name.pop()` - Returns the item at the last index and removes it.*/
+class ListPopNode : public ASTNode {
+public:
+    std::string name;
+    int line;
+
+    explicit ListPopNode(std::string name, int line)
+        : name(std::move(name)), line(line) {}
+
+    PrometheusValue accept(Visitor& v) override { return v.visit(this); }
+};
+
+/**`name.remove(val)` - Removes the first occurence of the value*/
+class ListRemoveNode : public ASTNode {
+public:
+    std::string name;
+    std::unique_ptr<ASTNode> value;
+    int line;
+
+    explicit ListRemoveNode(std::string name, std::unique_ptr<ASTNode> value, int line)
+        : name(std::move(name)), value(std::move(value)), line(line) {}
+
+    PrometheusValue accept(Visitor& v) override { return v.visit(this); }
+};
+
+/**`name.remove(val)` - Removes the first occurence of the value*/
+class ListClearNode : public ASTNode {
+public:
+    std::string name;
+    int line;
+
+    explicit ListClearNode(std::string name, int line)
+        : name(std::move(name)), line(line) {}
+
+    PrometheusValue accept(Visitor& v) override { return v.visit(this); }
+};
+
 // ---------------------------------------------------------------------------
 // Modules
 // ---------------------------------------------------------------------------

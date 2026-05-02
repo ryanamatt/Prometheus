@@ -169,6 +169,56 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
                     std::move(value));
             }
 
+            if (method == "pop") {
+                if (current_token().get_token() != TokenType::LPAREN)
+                    throw MissingBraceException('(', current_token().get_line());
+                eat(TokenType::LPAREN);
+                if (current_token().get_token() != TokenType::RPAREN)
+                    throw MissingBraceException('(', id.get_line());
+
+                eat(TokenType::RPAREN);
+                if (current_token().get_token() != TokenType::SEMICOLON)
+                    throw MissingSemicolonException("pop()", current_token().get_line());
+                int line = current_token().get_line();
+                eat(TokenType::SEMICOLON);
+
+                return std::make_unique<ListPopNode>(id.get_value(), line);
+            }
+
+            if (method == "remove") {
+                if (current_token().get_token() != TokenType::LPAREN)
+                    throw MissingBraceException('(', current_token().get_line());
+                eat(TokenType::LPAREN);
+
+                auto value = parse_expression();
+
+                if (current_token().get_token() != TokenType::RPAREN)
+                    throw MissingBraceException('(', id.get_line());
+                eat(TokenType::RPAREN);
+                if (current_token().get_token() != TokenType::SEMICOLON)
+                    throw MissingSemicolonException("pop()", current_token().get_line());
+                int line = current_token().get_line();
+                eat(TokenType::SEMICOLON);
+
+                return std::make_unique<ListRemoveNode>(id.get_value(), std::move(value), line);
+            }
+
+            if (method == "clear") {
+                if (current_token().get_token() != TokenType::LPAREN)
+                    throw MissingBraceException('(', current_token().get_line());
+                eat(TokenType::LPAREN);
+
+                if (current_token().get_token() != TokenType::RPAREN)
+                    throw MissingBraceException('(', id.get_line());
+                eat(TokenType::RPAREN);
+                if (current_token().get_token() != TokenType::SEMICOLON)
+                    throw MissingSemicolonException("pop()", current_token().get_line());
+                int line = current_token().get_line();
+                eat(TokenType::SEMICOLON);
+
+                return std::make_unique<ListClearNode>(id.get_value(), line);
+            }
+
             throw ParseException(
                 "Unknown method '" + method + "' on '" + id.get_value() + "'",
                 current_token().get_line());
@@ -970,6 +1020,7 @@ std::unique_ptr<ASTNode> Parser::parse_term() {
             if (current_token().get_token() != TokenType::IDENTIFIER)
                 throw ParseException("Expected method name after '.'", current_token().get_line());
             std::string method = eat(TokenType::IDENTIFIER).get_value();
+
             if (method == "len") {
                 if (current_token().get_token() != TokenType::LPAREN)
                     throw MissingBraceException('(', id.get_line());
@@ -979,6 +1030,17 @@ std::unique_ptr<ASTNode> Parser::parse_term() {
                 eat(TokenType::RPAREN);
                 return std::make_unique<ListLengthNode>(id.get_value());
             }
+
+            if (method == "pop") {
+                if (current_token().get_token() != TokenType::LPAREN)
+                    throw MissingBraceException('(', id.get_line());
+                eat(TokenType::LPAREN);
+                if (current_token().get_token() != TokenType::RPAREN)
+                    throw MissingBraceException('(', id.get_line());
+                eat(TokenType::RPAREN);
+                return std::make_unique<ListPopNode>(id.get_value(), id.get_line());
+            }
+
             throw ParseException(
                 "Unknown expression method '" + method + "' on '" + id.get_value() + "'",
                 current_token().get_line());

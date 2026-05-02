@@ -851,6 +851,55 @@ PrometheusValue Interpreter::visit(ListInsertNode* n) {
 }
 
 // ----------------------------------------------------------------------------
+// List Pop
+// ----------------------------------------------------------------------------
+
+PrometheusValue Interpreter::visit(ListPopNode* n) {
+    PrometheusValue var_name = get_var(n->name);
+    if (!std::holds_alternative<PrometheusListPtr>(var_name))
+        throw TypeException("'" + n->name + "' is not a list");
+    auto lst = std::get<PrometheusListPtr>(var_name);
+
+    if (lst->elements.empty())
+        return std::monostate{};
+
+    PrometheusValue lastValue = lst->elements.back();
+    lst->elements.pop_back();
+    return lastValue;
+}
+
+// ----------------------------------------------------------------------------
+// List Remove
+// ----------------------------------------------------------------------------
+
+PrometheusValue Interpreter::visit(ListRemoveNode* n) {
+    PrometheusValue var_name = get_var(n->name);
+    if (!std::holds_alternative<PrometheusListPtr>(var_name))
+        throw TypeException("'" + n->name + "' is not a list");
+    auto lst = std::get<PrometheusListPtr>(var_name);
+
+    PrometheusValue value = visit(n->value.get());
+    auto it = std::find(lst->elements.begin(), lst->elements.end(), value);
+    if (it != lst->elements.end())
+        lst->elements.erase(it);
+    return std::monostate{};
+}
+
+// ----------------------------------------------------------------------------
+// List Clear
+// ----------------------------------------------------------------------------
+
+PrometheusValue Interpreter::visit(ListClearNode* n) {
+    PrometheusValue var_name = get_var(n->name);
+    if (!std::holds_alternative<PrometheusListPtr>(var_name))
+        throw TypeException("'" + n->name + "' is not a list");
+    auto lst = std::get<PrometheusListPtr>(var_name);
+
+    lst->elements.clear();
+    return std::monostate{};
+}
+
+// ----------------------------------------------------------------------------
 // Import
 // ----------------------------------------------------------------------------
 
