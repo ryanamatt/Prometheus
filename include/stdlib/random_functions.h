@@ -8,6 +8,9 @@
 
 /**
  * @brief Registers native random functions into the supplied table.
+ * Functions are keyed with the "__native_" prefix so they are only
+ * reachable through the Prometheus stdlib wrapper (random.prm), not
+ * directly by user code.
  *
  * The caller owns the generator and last_seed state and passes them in
  * by reference so random.cc has no dependency on Interpreter at all.
