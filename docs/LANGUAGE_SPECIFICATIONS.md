@@ -47,8 +47,9 @@ Prometheus supports modularity through two distinct keywords: import for local f
 
 See what the modules documentation here.
 
-* **[Math Module Documentation](stdlib_docs/Math_Module.md)**
-* **[Random Module Documentation](stdlib_docs/Random_Module.md)**
+* **[Math Module Documentation](stdlid/math.md)**
+* **[Random Module Documentation](stdlib/random.md)**
+* **[Time Module Documentation](stdlib/time.md)**
 
 ### **Variables and Operators**
 
