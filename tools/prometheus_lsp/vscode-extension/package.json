@@ -1,0 +1,57 @@
+{
+  "name": "prometheus-language-support",
+  "displayName": "Prometheus Language Support",
+  "description": "Syntax highlighting, diagnostics, completion, hover, and go-to-def for the Prometheus (.prm) language",
+  "version": "0.1.1-dev",
+  "publisher": "prometheus-lang",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Programming Languages", "Linters"],
+  "activationEvents": ["onLanguage:prometheus"],
+  "main": "./extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "prometheus",
+        "aliases": ["Prometheus", "prm"],
+        "extensions": [".prm"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "prometheus",
+        "scopeName": "source.prometheus",
+        "path": "./syntaxes/prometheus.tmGrammar.json"
+      }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "Prometheus Language Server",
+      "properties": {
+        "prometheusLsp.serverPath": {
+          "type": "string",
+          "default": "prometheus-lsp",
+          "description": "Path to the prometheus-lsp executable (or command on PATH)."
+        },
+        "prometheusLsp.binaryPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the prometheus interpreter binary for live diagnostics. Leave blank to use heuristic analysis."
+        },
+        "prometheusLsp.trace.server": {
+          "type": "string",
+          "enum": ["off", "messages", "verbose"],
+          "default": "off",
+          "description": "Enable LSP protocol tracing in the Output panel."
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.0.0"
+  }
+}

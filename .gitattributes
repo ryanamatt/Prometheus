@@ -1,13 +1,24 @@
+# Normalize line endings
 * text=auto
 
+# Force LF for source files (important for WSL/Windows)
 *.cc text eol=lf
-*.h text eol=lf
+*.h  text eol=lf
 *.py text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.prm text eol=lf
+*.toml text eol=lf
 
 Makefile text eol=lf
 
+# Binary files
+prometheus binary
+prometheus-viz binary
 *.exe binary
-*.o binary
+bin/*.o binary
+*.vsix binary
 
 
 *.prm text eol=lf linguist-language=C

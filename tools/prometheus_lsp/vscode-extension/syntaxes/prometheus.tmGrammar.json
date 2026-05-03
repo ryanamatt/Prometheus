@@ -1,0 +1,70 @@
+{
+  "name": "Prometheus",
+  "scopeName": "source.prometheus",
+  "fileTypes": ["prm"],
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#string" },
+    { "include": "#number" },
+    { "include": "#keyword" },
+    { "include": "#type" },
+    { "include": "#builtin" },
+    { "include": "#operator" },
+    { "include": "#list-method" },
+    { "include": "#function-call" },
+    { "include": "#identifier" },
+    { "include": "#delimiter" }
+  ],
+  "repository": {
+    "comment": {
+      "name": "comment.line.number-sign.prometheus",
+      "match": "#.*$"
+    },
+    "string": {
+      "name": "string.quoted.double.prometheus",
+      "begin": "\"",
+      "end": "\"",
+      "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.prometheus" } },
+      "endCaptures":   { "0": { "name": "punctuation.definition.string.end.prometheus" } },
+      "patterns": [
+        { "name": "constant.character.escape.prometheus", "match": "\\\\." }
+      ]
+    },
+    "number": {
+      "name": "constant.numeric.prometheus",
+      "match": "\\b\\d+(?:\\.\\d+)?\\b"
+    },
+    "keyword": {
+      "name": "keyword.control.prometheus",
+      "match": "\\b(if|elif|else|while|for|func|return|import|use|true|false)\\b"
+    },
+    "type": {
+      "name": "storage.type.prometheus",
+      "match": "\\b(int|double|str|bool|void|list)\\b"
+    },
+    "builtin": {
+      "name": "support.function.builtin.prometheus",
+      "match": "\\b(print|input|range|type)\\b(?=\\s*\\()"
+    },
+    "operator": {
+      "name": "keyword.operator.prometheus",
+      "match": "\\*\\*|[+\\-*/%]=?|[=!<>]=?|&&|\\|\\||!"
+    },
+    "list-method": {
+      "name": "support.function.prometheus",
+      "match": "\\.(append|len|insert|pop|remove|clear)\\b"
+    },
+    "function-call": {
+      "name": "entity.name.function.prometheus",
+      "match": "\\b([a-zA-Z_]\\w*)(?=\\s*\\()"
+    },
+    "identifier": {
+      "name": "variable.other.prometheus",
+      "match": "\\b[a-zA-Z_]\\w*\\b"
+    },
+    "delimiter": {
+      "name": "punctuation.prometheus",
+      "match": "[(){};,\\[\\].]"
+    }
+  }
+}

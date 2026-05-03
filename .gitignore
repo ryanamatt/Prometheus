@@ -1,13 +1,14 @@
 # Prerequisites
-__pycache__/
 .vscode/
 bin/
 build/
 
 # Python
 venv/
-*.py[cod]
-*$py.class
+__pycache__/
+*.egg-info/
+*.egg
+.eggs/
 
 # C++ Build Artifacts
 *.o
@@ -18,4 +19,20 @@ prometheus-viz
 # Test
 tests/outputs/
 
+.vsix
+node_modules/
+
+# LSP / Node
+tools/prometheus_lsp/vscode-extension/node_modules/
+tools/prometheus_lsp/vscode-extension/*.vsix
+
+# Test artifacts
 test.prm
+
+# Windows/WSL junk
+*.Zone.Identifier
+
+# Editors
+.vscode/settings.json
+.idea/
+*.swp
