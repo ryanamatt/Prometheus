@@ -24,11 +24,11 @@ class FunctionDeclNode;
 class ReturnNode;
 class CallNode;
 
-class IndexNode;
+class GenCollectionIndexNode;
+class GenCollectionAssignNode;
 
 class ListLiteralNode;
 class ListDeclNode;
-class ListAssignNode;
 class ListAppendNode;
 class ListLengthNode;
 class ListInsertNode;
@@ -79,11 +79,11 @@ public:
     virtual PrometheusValue visit(ReturnNode* node) = 0;
     virtual PrometheusValue visit(CallNode* node) = 0;
 
-    virtual PrometheusValue visit(IndexNode* node) = 0;
+    virtual PrometheusValue visit(GenCollectionIndexNode* node) = 0;
+    virtual PrometheusValue visit(GenCollectionAssignNode* node) = 0;
 
     virtual PrometheusValue visit(ListLiteralNode* node) = 0;
     virtual PrometheusValue visit(ListDeclNode* node) = 0;
-    virtual PrometheusValue visit(ListAssignNode* node) = 0;
     virtual PrometheusValue visit(ListAppendNode* node) = 0;
     virtual PrometheusValue visit(ListLengthNode* node) = 0;
     virtual PrometheusValue visit(ListInsertNode* node) = 0;

@@ -103,8 +103,10 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
             auto value = parse_expression();
             if (current_token().get_token() != TokenType::SEMICOLON)
                 throw MissingSemicolonException("list index assignment", current_token().get_line());
+            int tok_line = current_token().get_line();
             eat(TokenType::SEMICOLON);
-            return std::make_unique<ListAssignNode>(id.get_value(), std::move(index), std::move(value));
+            return std::make_unique<GenCollectionAssignNode>(id.get_value(), std::move(index), 
+                std::move(value), tok_line);
         }
 
         // name.append(expr); or name.len();
@@ -1027,7 +1029,7 @@ std::unique_ptr<ASTNode> Parser::parse_term() {
                 throw MissingBraceException('[', id.get_line());
             int tok_line = current_token().get_line();
             eat(TokenType::RBRACKET);
-            return std::make_unique<IndexNode>(id.get_value(), std::move(index), tok_line);
+            return std::make_unique<GenCollectionIndexNode>(id.get_value(), std::move(index), tok_line);
         }
         // name.len() as an expression (e.g. used in conditions)
         if (peek().get_token() == TokenType::DOT) {

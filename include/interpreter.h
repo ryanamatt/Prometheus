@@ -153,11 +153,11 @@ public:
     PrometheusValue visit(ReturnNode* node) override;
     PrometheusValue visit(CallNode* node) override;
 
-    PrometheusValue visit(IndexNode* n) override;
+    PrometheusValue visit(GenCollectionIndexNode* n) override;
+    PrometheusValue visit(GenCollectionAssignNode* n) override;
 
     PrometheusValue visit(ListLiteralNode* node) override;
     PrometheusValue visit(ListDeclNode* node) override;
-    PrometheusValue visit(ListAssignNode* node) override;
     PrometheusValue visit(ListAppendNode* node) override;
     PrometheusValue visit(ListLengthNode* node) override;
     PrometheusValue visit(ListInsertNode* n) override;

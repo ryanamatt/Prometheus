@@ -745,7 +745,7 @@ PrometheusValue Interpreter::visit(CallNode* n) {
     return coerce_to_declared(func_node->return_type, "return", result);
 }
 
-PrometheusValue Interpreter::visit(IndexNode* n) {
+PrometheusValue Interpreter::visit(GenCollectionIndexNode* n) {
     PrometheusValue var = get_var(n->name); // Look up variable in scope
     PrometheusValue idx_val = visit(n->index.get()); // Evaluate the index/key
 
@@ -778,6 +778,38 @@ PrometheusValue Interpreter::visit(IndexNode* n) {
     throw TypeException("'" + n->name + "' is not indexable", n->token_line);
 }
 
+PrometheusValue Interpreter::visit(GenCollectionAssignNode* n) {
+    PrometheusValue var = get_var(n->name);
+
+    if (std::holds_alternative<PrometheusListPtr>(var)) {
+        auto lst = std::get<PrometheusListPtr>(var);
+        int idx  = get_int(visit(n->index.get()));
+
+        if (idx < 0 || idx >= (int)lst->elements.size())
+            throw RuntimeException(
+                "Index " + std::to_string(idx) + " out of bounds for list '" +
+                n->name + "' (size " + std::to_string(lst->elements.size()) + ")");
+
+        lst->elements[idx] = coerce_to_element(lst->element_type, visit(n->value.get()));
+        return lst->elements[idx];
+    }
+
+    if (std::holds_alternative<PrometheusDictPtr>(var)) {
+        auto dict = std::get<PrometheusDictPtr>(var);
+        PrometheusValue key = visit(n->index.get());
+        
+        key = coerce_to_element_dict(dict->key_type, key, n->token_line);
+
+        PrometheusValue val = visit(n->value.get());
+        val = coerce_to_element_dict(dict->value_type, val, n->token_line);
+
+        dict->dict_elements[key] = val;
+        return val;
+    }
+
+    throw TypeException("'" + n->name + "' is not assignable", n->token_line);
+}
+
 // ----------------------------------------------------------------------------
 // List literal
 // ----------------------------------------------------------------------------
@@ -807,27 +839,6 @@ PrometheusValue Interpreter::visit(ListDeclNode* n) {
 
     declare_var(n->name, lst);
     return lst;
-}
-
-// ----------------------------------------------------------------------------
-// List index assign
-// ----------------------------------------------------------------------------
-
-PrometheusValue Interpreter::visit(ListAssignNode* n) {
-    PrometheusValue var = get_var(n->name);
-    if (!std::holds_alternative<PrometheusListPtr>(var))
-        throw TypeException("'" + n->name + "' is not a list");
-
-    auto lst = std::get<PrometheusListPtr>(var);
-    int idx  = get_int(visit(n->index.get()));
-
-    if (idx < 0 || idx >= (int)lst->elements.size())
-        throw RuntimeException(
-            "Index " + std::to_string(idx) + " out of bounds for list '" +
-            n->name + "' (size " + std::to_string(lst->elements.size()) + ")");
-
-    lst->elements[idx] = coerce_to_element(lst->element_type, visit(n->value.get()));
-    return lst->elements[idx];
 }
 
 // ----------------------------------------------------------------------------
