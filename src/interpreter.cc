@@ -780,13 +780,13 @@ PrometheusValue Interpreter::visit(ListDeclNode* n) {
 // List length
 // ----------------------------------------------------------------------------
 
-PrometheusValue Interpreter::visit(ListLengthNode* n) {
-    PrometheusValue var = get_var(n->name);
-    if (!std::holds_alternative<PrometheusListPtr>(var))
-        throw TypeException("'" + n->name + "' is not a list");
+// PrometheusValue Interpreter::visit(ListLengthNode* n) {
+//     PrometheusValue var = get_var(n->name);
+//     if (!std::holds_alternative<PrometheusListPtr>(var))
+//         throw TypeException("'" + n->name + "' is not a list");
 
-    return static_cast<int>(std::get<PrometheusListPtr>(var)->elements.size());
-}
+//     return static_cast<int>(std::get<PrometheusListPtr>(var)->elements.size());
+// }
 
 // ----------------------------------------------------------------------------
 // List insert
@@ -965,6 +965,24 @@ PrometheusValue Interpreter::visit(GenCollectionAppendNode* n) {
     }
 
     throw TypeException("'" + n->name + "' is not appendable", n->token_line);
+}
+
+PrometheusValue Interpreter::visit(GenCollectionLengthNode* n) {
+    PrometheusValue var = get_var(n->name);
+
+    if (std::holds_alternative<PrometheusListPtr>(var)) {
+        auto lst = std::get<PrometheusListPtr>(var);
+        auto len = lst->elements.size();
+        return static_cast<int>(len);
+    }
+
+    if (std::holds_alternative<PrometheusDictPtr>(var)) {
+        auto dict = std::get<PrometheusDictPtr>(var);
+        auto len = dict->dict_elements.size();
+        return static_cast<int>(len);
+    }
+
+    throw TypeException("'" + n->name + "' does not have a length");
 }
 
 PrometheusValue Interpreter::visit(GenCollectionRemoveNode* n) {

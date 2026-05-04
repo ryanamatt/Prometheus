@@ -288,15 +288,15 @@ public:
     PrometheusValue accept(Visitor& v) override { return v.visit(this); }
 };
 
-/** `name.len()` — evaluates to int */
-class ListLengthNode : public ASTNode {
-public:
-    std::string name;
+// /** `name.len()` — evaluates to int */
+// class ListLengthNode : public ASTNode {
+// public:
+//     std::string name;
 
-    explicit ListLengthNode(std::string name) : name(std::move(name)) {}
+//     explicit ListLengthNode(std::string name) : name(std::move(name)) {}
 
-    PrometheusValue accept(Visitor& v) override { return v.visit(this); }
-};
+//     PrometheusValue accept(Visitor& v) override { return v.visit(this); }
+// };
 
 /**`name.insert(i, x)` -inserts x at index i */
 class ListInsertNode : public ASTNode {
@@ -385,6 +385,18 @@ public:
 
     GenCollectionAppendNode(std::string name, std::unique_ptr<ASTNode> value, int token_line)
         : name(std::move(name)), value(std::move(value)), token_line(token_line) {}
+
+    PrometheusValue accept(Visitor& v) override { return v.visit(this); }
+};
+
+/** `name.len()` — evaluates to int */
+class GenCollectionLengthNode : public ASTNode {
+public:
+    std::string name;
+    int token_line;
+
+    explicit GenCollectionLengthNode(std::string name, int token_line) 
+        : name(std::move(name)), token_line(token_line) {}
 
     PrometheusValue accept(Visitor& v) override { return v.visit(this); }
 };

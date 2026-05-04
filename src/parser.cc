@@ -144,8 +144,9 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
                 eat(TokenType::RPAREN);
                 if (current_token().get_token() != TokenType::SEMICOLON)
                     throw MissingSemicolonException("len()", current_token().get_line());
+                int token_line = current_token().get_line();
                 eat(TokenType::SEMICOLON);
-                return std::make_unique<ListLengthNode>(id.get_value());
+                return std::make_unique<GenCollectionLengthNode>(id.get_value(), token_line);
             }
 
             if (method == "insert") {
@@ -1050,8 +1051,9 @@ std::unique_ptr<ASTNode> Parser::parse_term() {
                 eat(TokenType::LPAREN);
                 if (current_token().get_token() != TokenType::RPAREN)
                     throw MissingBraceException('(', id.get_line());
+                int token_line = current_token().get_line();
                 eat(TokenType::RPAREN);
-                return std::make_unique<ListLengthNode>(id.get_value());
+                return std::make_unique<GenCollectionLengthNode>(id.get_value(), token_line);
             }
 
             if (method == "pop") {

@@ -27,7 +27,7 @@ class CallNode;
 class ListLiteralNode;
 class ListDeclNode;
 
-class ListLengthNode;
+// class ListLengthNode;
 class ListInsertNode;
 
 class DictLiteralNode;
@@ -36,6 +36,7 @@ class DictDeclNode;
 class GenCollectionIndexNode;
 class GenCollectionAssignNode;
 class GenCollectionAppendNode;
+class GenCollectionLengthNode;
 class GenCollectionRemoveNode;
 class GenCollectionPopNode;
 class GenCollectionClearNode;
@@ -80,17 +81,18 @@ public:
     virtual PrometheusValue visit(ReturnNode* node) = 0;
     virtual PrometheusValue visit(CallNode* node) = 0;
 
-    virtual PrometheusValue visit(GenCollectionIndexNode* node) = 0;
-    virtual PrometheusValue visit(GenCollectionAssignNode* node) = 0;
-    virtual PrometheusValue visit(GenCollectionAppendNode* node) = 0;
-
     virtual PrometheusValue visit(ListLiteralNode* node) = 0;
     virtual PrometheusValue visit(ListDeclNode* node) = 0;
-    virtual PrometheusValue visit(ListLengthNode* node) = 0;
+    // virtual PrometheusValue visit(ListLengthNode* node) = 0;
     virtual PrometheusValue visit(ListInsertNode* node) = 0;
 
     virtual PrometheusValue visit(DictLiteralNode* node) = 0;
     virtual PrometheusValue visit(DictDeclNode* node) = 0;
+
+    virtual PrometheusValue visit(GenCollectionIndexNode* node) = 0;
+    virtual PrometheusValue visit(GenCollectionAssignNode* node) = 0;
+    virtual PrometheusValue visit(GenCollectionAppendNode* node) = 0;
+    virtual PrometheusValue visit(GenCollectionLengthNode* n) = 0;
     virtual PrometheusValue visit(GenCollectionRemoveNode* node) = 0;
     virtual PrometheusValue visit(GenCollectionPopNode* node) = 0;
     virtual PrometheusValue visit(GenCollectionClearNode* node) = 0;
