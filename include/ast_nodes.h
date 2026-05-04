@@ -5,6 +5,7 @@
 #include <vector>
 #include <memory>
 #include <utility>
+#include <unordered_map>
 #include "prometheus_types.h"
 #include "visitor.h"
 
@@ -382,6 +383,38 @@ public:
 
     explicit ListClearNode(std::string name, int line)
         : name(std::move(name)), line(line) {}
+
+    PrometheusValue accept(Visitor& v) override { return v.visit(this); }
+};
+
+// ---------------------------------------------------------------------------
+// Dicts
+// ---------------------------------------------------------------------------
+
+/**{key: value, key: value, ...} dict literal*/
+class DictLiteralNode : public ASTNode {
+public:
+    std::unordered_map<std::unique_ptr<ASTNode>, std::unique_ptr<ASTNode>> dict_elements;
+
+    explicit DictLiteralNode(
+        std::unordered_map<std::unique_ptr<ASTNode>, std::unique_ptr<ASTNode>> dict_elements)
+        : dict_elements(std::move(dict_elements)) {}
+
+    PrometheusValue accept(Visitor& v) override { return v.visit(this); }
+};
+
+/** `dict[key_type, value_type] name = {key: value, key2: value2};` */
+class DictDeclNode : public ASTNode {
+public:
+    std::string key_type;   // "int", "double", "str", "bool"
+    std::string value_type; // "int", "double", "str", "bool"
+    std::string name;
+    std::unique_ptr<ASTNode> value_node;
+
+    DictDeclNode(std::string key_type, std::string value_type, std::string name,
+                 std::unique_ptr<ASTNode> value_node)
+        : key_type(std::move(key_type)), value_type(std::move(value_type)), 
+        name(std::move(name)), value_node(std::move(value_node)) {}
 
     PrometheusValue accept(Visitor& v) override { return v.visit(this); }
 };

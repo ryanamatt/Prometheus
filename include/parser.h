@@ -62,6 +62,11 @@ private:
      */
     std::unique_ptr<ListDeclNode> parse_list_decl();
 
+    /**
+     * @brief Parses a dict declaration: dict[str, double] prices = {"apple": 0.75, "banana": 0.50};
+     */
+    std::unique_ptr<DictDeclNode> parse_dict_decl();
+
     /** 
      * @brief Parses a bare identifier assignment: `x = <expr>;`
      */

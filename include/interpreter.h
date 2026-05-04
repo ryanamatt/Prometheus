@@ -164,6 +164,9 @@ public:
     PrometheusValue visit(ListRemoveNode* n) override;
     PrometheusValue visit(ListClearNode* n) override;
 
+    PrometheusValue visit(DictLiteralNode* node) override;
+    PrometheusValue visit(DictDeclNode* node) override;
+
     PrometheusValue visit(ImportNode* node) override;
     PrometheusValue visit(UseNode* node) override;
 

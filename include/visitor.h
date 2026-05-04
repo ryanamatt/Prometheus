@@ -35,6 +35,9 @@ class ListPopNode;
 class ListRemoveNode;
 class ListClearNode;
 
+class DictLiteralNode;
+class DictDeclNode;
+
 class ImportNode;
 class UseNode;
 
@@ -85,6 +88,9 @@ public:
     virtual PrometheusValue visit(ListPopNode* node) = 0;
     virtual PrometheusValue visit(ListRemoveNode* node) = 0;
     virtual PrometheusValue visit(ListClearNode* node) = 0;
+
+    virtual PrometheusValue visit(DictLiteralNode* node) = 0;
+    virtual PrometheusValue visit(DictDeclNode* node) = 0;
 
     virtual PrometheusValue visit(ImportNode* node) = 0;
     virtual PrometheusValue visit(UseNode* node) = 0;

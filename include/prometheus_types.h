@@ -6,6 +6,7 @@
 #include <string>
 #include <variant>
 #include <vector>
+#include <unordered_map>
 
 /**
  * @brief The canonical runtime value type used throughout the interpreter.
@@ -22,12 +23,16 @@
  * value type even though its variant must not directly reference itself.
  */
 
-// Forward-declare so PrometheusValue and PrometheusListPtr can reference each other.
+// Forward-declare so PrometheusValue and PrometheusListPtr, PrometheusDictPtr 
+// can reference each other.
 struct PrometheusList;
 using PrometheusListPtr = std::shared_ptr<PrometheusList>;
+struct PrometheusDict;
+using PrometheusDictPtr = std::shared_ptr<PrometheusDict>;
 
 using PrometheusValue = std::variant<int, double, bool, std::string,
-                                     PrometheusListPtr, std::monostate>;
+                                     PrometheusListPtr, PrometheusDictPtr, 
+                                     std::monostate>;
 
 /**
  * @brief A runtime list: an element-type tag plus a vector of PrometheusValues.
@@ -43,6 +48,21 @@ struct PrometheusList {
 };
 
 /**
+ * @brief A runtime dict: Similar to Python's dict [key, value]
+ */
+struct PrometheusDict {
+    std::string key_type;
+    std::string value_type;
+    std::unordered_map<PrometheusValue, PrometheusValue> dict_elements;
+
+    PrometheusDict() = default;
+    PrometheusDict(std::string key_type, std::string value_type, 
+        std::unordered_map<PrometheusValue, PrometheusValue> dict_elements)
+        : key_type(std::move(key_type)), value_type(std::move(value_type)),
+        dict_elements(std::move(dict_elements)) {} 
+};
+
+/**
  * @brief Enumeration of all valid token types supported by the 
     Prometheus Lexer and Parser.
  */
@@ -55,6 +75,7 @@ enum class TokenType
     BOOL,
     VOID,
     LIST,
+    DICT,
 
     // Identifiers and Literals
     IDENTIFIER,
@@ -131,6 +152,7 @@ inline std::string to_string(TokenType t) {
         case TokenType::BOOL:       return "BOOL";
         case TokenType::VOID:       return "VOID";
         case TokenType::LIST:       return "LIST";
+        case TokenType::DICT:       return "DICT";
 
         // Identifiers and Literals
         case TokenType::IDENTIFIER: return "IDENTIFIER";
@@ -188,7 +210,7 @@ inline std::string to_string(TokenType t) {
         case TokenType::RBRACKET:   return "RBRACKET";
 
         case TokenType::DOT:        return "DOT";
-        case TokenType::COLON:      return "IN";
+        case TokenType::COLON:      return "COLON";
 
         case TokenType::SEMICOLON:  return "SEMICOLON";
         case TokenType::COMMA:      return "COMMA";

@@ -252,6 +252,11 @@ static std::string type_name(const PrometheusValue& v) {
         const auto& lst = std::get<PrometheusListPtr>(v);
         return "list[" + (lst ? lst->element_type : "?") + "]";
     }
+    if (std::holds_alternative<PrometheusDictPtr>(v)) {
+        const auto& dict = std::get<PrometheusDictPtr>(v);
+        return "dict[" + (dict ? dict->key_type : "?") + ", " + 
+                         (dict ? dict->value_type : "?") + "]";
+    }
     return "None";
 }
 
@@ -310,6 +315,18 @@ static std::string value_to_string(const PrometheusValue& value) {
         }
         return out + "]";
     }
+    if (auto* dp = std::get_if<PrometheusDictPtr>(&value)) {
+        if (!*dp) return "{}";
+        std::string out = "{";
+        const auto& elements = (*dp)->dict_elements;
+        bool first = true;
+        for (const auto& [k, v] : elements) {
+            if (!first) out += ", ";
+            out += value_to_string(k) + ": " + value_to_string(v);
+            first = false;
+        }
+        return out + "}";
+    }
     return "None";
 }
 
@@ -345,6 +362,12 @@ static PrometheusValue coerce_to_element(const std::string& elem_type,
                                           const PrometheusValue& value,
                                           int line = 0) {
     return coerce_to_declared(elem_type, "<list element>", value, line);
+}
+
+static PrometheusValue coerce_to_element_dict(const std::string& elem_type,
+                                          const PrometheusValue& value,
+                                          int line = 0) {
+    return coerce_to_declared(elem_type, "<dict element>", value, line);
 }
 
 // ============================================================================
@@ -884,6 +907,50 @@ PrometheusValue Interpreter::visit(ListClearNode* n) {
 
     lst->elements.clear();
     return std::monostate{};
+}
+
+// ----------------------------------------------------------------------------
+// Dict literal
+// ----------------------------------------------------------------------------
+
+PrometheusValue Interpreter::visit(DictLiteralNode* n) {
+    auto dict = std::make_shared<PrometheusDict>();
+    dict->key_type = "";    // stamped by DictDeclNode
+    dict->value_type = "";  // stamped by DictDeclNode
+
+
+    for (auto& [key, value] : n->dict_elements) {
+        PrometheusValue k = visit(key.get());
+        PrometheusValue v = visit(value.get());
+        dict->dict_elements[k] = v;
+    }
+    return dict;
+}
+
+PrometheusValue Interpreter::visit(DictDeclNode* n) {
+    PrometheusValue raw_dict = visit(n->value_node.get());
+    if (!std::holds_alternative<PrometheusDictPtr>(raw_dict))
+        throw TypeException("Expected a dict literal for declaration of '" + n->name + "'");
+
+    auto dict = std::get<PrometheusDictPtr>(raw_dict);
+    dict->key_type = n->key_type;
+    dict->value_type = n->value_type;
+
+    // Create a temporary map to hold coerced values
+    std::unordered_map<PrometheusValue, PrometheusValue> coerced_elements;
+
+    for (auto& [key, value] : dict->dict_elements) {
+        // Coerce both key and value
+        PrometheusValue new_key = coerce_to_element_dict(n->key_type, key);
+        PrometheusValue new_val = coerce_to_element_dict(n->value_type, value);
+        
+        coerced_elements[new_key] = new_val;
+    }
+
+    // Replace the old elements with the coerced ones
+    dict->dict_elements = std::move(coerced_elements);
+    declare_var(n->name, dict);
+    return dict;
 }
 
 // ----------------------------------------------------------------------------
