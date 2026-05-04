@@ -27,7 +27,7 @@ logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("prometheus-lsp")
 
-server = LanguageServer("prometheus-language-server", "v1.0.0")
+server = LanguageServer("prometheus-language-server", "v0.1.1-dev")
 
 # ---------------------------------------------------------------------------
 # Language constants
@@ -37,7 +37,7 @@ KEYWORDS = [
     "import", "use", "true", "false",
 ]
 
-TYPES = ["int", "str", "double", "bool", "void", "list"]
+TYPES = ["int", "str", "double", "bool", "void", "list", "dict"]
 
 BUILTINS = {
     "print": {
@@ -95,6 +95,7 @@ KEYWORD_DOCS = {
     "bool":   "Boolean type (`true` / `false`).",
     "void":   "Return type indicating no value.",
     "list":   "Generic list type: `list[int]`, `list[str]`, etc.",
+    "dict":   "Generic dict type: `dict[str, int]`, dict[double, bool], etc."
 }
 
 # Token patterns for semantic highlighting (order matters)
@@ -103,7 +104,7 @@ _TOKEN_PATTERNS = [
     ("string",    re.compile(r'"(?:[^"\\]|\\.)*"')),
     ("number",    re.compile(r"\b\d+(?:\.\d+)?\b")),
     ("keyword",   re.compile(r"\b(?:if|elif|else|while|for|func|return|import|use|true|false)\b")),
-    ("type",      re.compile(r"\b(?:int|double|str|bool|void|list)\b")),
+    ("type",      re.compile(r"\b(?:int|double|str|bool|void|list|dict)\b")),
     ("builtin",   re.compile(r"\b(?:print|input|range|type)\b")),
     ("operator",  re.compile(r"\*\*|[+\-*/%]=?|[=!<>]=?|&&|\|\||!")),
     ("delimiter", re.compile(r"[(){}\[\].,;:]")),

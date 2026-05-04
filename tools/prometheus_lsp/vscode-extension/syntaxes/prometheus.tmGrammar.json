@@ -40,7 +40,7 @@
     },
     "type": {
       "name": "storage.type.prometheus",
-      "match": "\\b(int|double|str|bool|void|list)\\b"
+      "match": "\\b(int|double|str|bool|void|list|dict)\\b"
     },
     "builtin": {
       "name": "support.function.builtin.prometheus",
