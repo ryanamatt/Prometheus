@@ -745,71 +745,6 @@ PrometheusValue Interpreter::visit(CallNode* n) {
     return coerce_to_declared(func_node->return_type, "return", result);
 }
 
-PrometheusValue Interpreter::visit(GenCollectionIndexNode* n) {
-    PrometheusValue var = get_var(n->name); // Look up variable in scope
-    PrometheusValue idx_val = visit(n->index.get()); // Evaluate the index/key
-
-    // Handle List Case
-    if (std::holds_alternative<PrometheusListPtr>(var)) {
-        auto lst = std::get<PrometheusListPtr>(var);
-        int idx = get_int(idx_val); // Ensure index is an integer
-        
-        if (idx < 0 || idx >= (int)lst->elements.size())
-            throw RuntimeException(
-            "Index " + std::to_string(idx) + " out of bounds for list '" +
-            n->name + "' (size " + std::to_string(lst->elements.size()) + ")");
-        
-        return lst->elements[idx];
-    }
-
-    // Handle Dictionary Case
-    if (std::holds_alternative<PrometheusDictPtr>(var)) {
-        auto dict = std::get<PrometheusDictPtr>(var);
-        
-        // Check if the key exists in the dictionary map
-        auto it = dict->dict_elements.find(idx_val);
-        if (it == dict->dict_elements.end()) {
-            throw RuntimeException("Key error: " + value_to_string(idx_val), n->token_line);
-        }
-        
-        return it->second;
-    }
-
-    throw TypeException("'" + n->name + "' is not indexable", n->token_line);
-}
-
-PrometheusValue Interpreter::visit(GenCollectionAssignNode* n) {
-    PrometheusValue var = get_var(n->name);
-
-    if (std::holds_alternative<PrometheusListPtr>(var)) {
-        auto lst = std::get<PrometheusListPtr>(var);
-        int idx  = get_int(visit(n->index.get()));
-
-        if (idx < 0 || idx >= (int)lst->elements.size())
-            throw RuntimeException(
-                "Index " + std::to_string(idx) + " out of bounds for list '" +
-                n->name + "' (size " + std::to_string(lst->elements.size()) + ")");
-
-        lst->elements[idx] = coerce_to_element(lst->element_type, visit(n->value.get()));
-        return lst->elements[idx];
-    }
-
-    if (std::holds_alternative<PrometheusDictPtr>(var)) {
-        auto dict = std::get<PrometheusDictPtr>(var);
-        PrometheusValue key = visit(n->index.get());
-        
-        key = coerce_to_element_dict(dict->key_type, key, n->token_line);
-
-        PrometheusValue val = visit(n->value.get());
-        val = coerce_to_element_dict(dict->value_type, val, n->token_line);
-
-        dict->dict_elements[key] = val;
-        return val;
-    }
-
-    throw TypeException("'" + n->name + "' is not assignable", n->token_line);
-}
-
 // ----------------------------------------------------------------------------
 // List literal
 // ----------------------------------------------------------------------------
@@ -839,20 +774,6 @@ PrometheusValue Interpreter::visit(ListDeclNode* n) {
 
     declare_var(n->name, lst);
     return lst;
-}
-
-// ----------------------------------------------------------------------------
-// List append
-// ----------------------------------------------------------------------------
-
-PrometheusValue Interpreter::visit(ListAppendNode* n) {
-    PrometheusValue var = get_var(n->name);
-    if (!std::holds_alternative<PrometheusListPtr>(var))
-        throw TypeException("'" + n->name + "' is not a list");
-
-    auto lst = std::get<PrometheusListPtr>(var);
-    lst->elements.push_back(coerce_to_element(lst->element_type, visit(n->value.get())));
-    return std::monostate{};
 }
 
 // ----------------------------------------------------------------------------
@@ -946,8 +867,15 @@ PrometheusValue Interpreter::visit(DictLiteralNode* n) {
     for (auto& [key, value] : n->dict_elements) {
         PrometheusValue k = visit(key.get());
         PrometheusValue v = visit(value.get());
+
+        if (dict->key_type.empty() && !dict->dict_elements.empty() == 0) {
+            dict->key_type = type_name(k);
+            dict->value_type = type_name(v);
+        }
+
         dict->dict_elements[k] = v;
     }
+
     return dict;
 }
 
@@ -975,6 +903,117 @@ PrometheusValue Interpreter::visit(DictDeclNode* n) {
     dict->dict_elements = std::move(coerced_elements);
     declare_var(n->name, dict);
     return dict;
+}
+
+// ---------------------------------------------------------------------------
+// General Collection Nodes
+// ---------------------------------------------------------------------------
+
+PrometheusValue Interpreter::visit(GenCollectionIndexNode* n) {
+    PrometheusValue var = get_var(n->name); // Look up variable in scope
+    PrometheusValue idx_val = visit(n->index.get()); // Evaluate the index/key
+
+    // Handle List Case
+    if (std::holds_alternative<PrometheusListPtr>(var)) {
+        auto lst = std::get<PrometheusListPtr>(var);
+        int idx = get_int(idx_val); // Ensure index is an integer
+        
+        if (idx < 0 || idx >= (int)lst->elements.size())
+            throw RuntimeException(
+            "Index " + std::to_string(idx) + " out of bounds for list '" +
+            n->name + "' (size " + std::to_string(lst->elements.size()) + ")");
+        
+        return lst->elements[idx];
+    }
+
+    // Handle Dictionary Case
+    if (std::holds_alternative<PrometheusDictPtr>(var)) {
+        auto dict = std::get<PrometheusDictPtr>(var);
+        
+        // Check if the key exists in the dictionary map
+        auto it = dict->dict_elements.find(idx_val);
+        if (it == dict->dict_elements.end()) {
+            throw RuntimeException("Key error: " + value_to_string(idx_val), n->token_line);
+        }
+        
+        return it->second;
+    }
+
+    throw TypeException("'" + n->name + "' is not indexable", n->token_line);
+}
+
+PrometheusValue Interpreter::visit(GenCollectionAssignNode* n) {
+    PrometheusValue var = get_var(n->name);
+
+    // Handle Lists
+    if (std::holds_alternative<PrometheusListPtr>(var)) {
+        auto lst = std::get<PrometheusListPtr>(var);
+        int idx  = get_int(visit(n->index.get()));
+
+        if (idx < 0 || idx >= (int)lst->elements.size())
+            throw RuntimeException(
+                "Index " + std::to_string(idx) + " out of bounds for list '" +
+                n->name + "' (size " + std::to_string(lst->elements.size()) + ")");
+
+        lst->elements[idx] = coerce_to_element(lst->element_type, visit(n->value.get()));
+        return lst->elements[idx];
+    }
+
+    // Handle Dicts
+    if (std::holds_alternative<PrometheusDictPtr>(var)) {
+        auto dict = std::get<PrometheusDictPtr>(var);
+        PrometheusValue key = visit(n->index.get());
+        
+        key = coerce_to_element_dict(dict->key_type, key, n->token_line);
+
+        PrometheusValue val = visit(n->value.get());
+        val = coerce_to_element_dict(dict->value_type, val, n->token_line);
+
+        dict->dict_elements[key] = val;
+        return val;
+    }
+
+    throw TypeException("'" + n->name + "' is not assignable", n->token_line);
+}
+
+PrometheusValue Interpreter::visit(GenCollectionAppendNode* n) {
+    PrometheusValue var = get_var(n->name);
+
+    // Handle Lists
+    if (std::holds_alternative<PrometheusListPtr>(var)) {
+        auto lst = std::get<PrometheusListPtr>(var);
+        lst->elements.push_back(coerce_to_element(lst->element_type, visit(n->value.get())));
+        return std::monostate{};
+    }
+
+    // Handle Dictionaries
+    if (std::holds_alternative<PrometheusDictPtr>(var)) {
+        auto target_dict = std::get<PrometheusDictPtr>(var);
+        PrometheusValue val_to_append = visit(n->value.get());
+
+        // expect the argument to append() to be another dictionary (merge behavior)
+        if (std::holds_alternative<PrometheusDictPtr>(val_to_append)) {
+            auto source_dict = std::get<PrometheusDictPtr>(val_to_append);
+            
+            // Validate that types match before merging
+            if (source_dict->key_type != target_dict->key_type || 
+                source_dict->value_type != target_dict->value_type) {
+                throw TypeException("Type mismatch: Cannot append dict of type " + 
+                    type_name(val_to_append) + " to " + type_name(var), n->token_line);
+            }
+
+            // Merge keys/values from source into target
+            for (auto const& [key, val] : source_dict->dict_elements) {
+                target_dict->dict_elements[key] = val;
+            }
+            return std::monostate{};
+        } 
+        else
+            throw TypeException("Append to dict requires another dict (merge) at line " + 
+                std::to_string(n->token_line));
+    }
+
+    throw TypeException("'" + n->name + "' is not appendable", n->token_line);
 }
 
 // ----------------------------------------------------------------------------

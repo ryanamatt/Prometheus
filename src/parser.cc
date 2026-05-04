@@ -109,7 +109,7 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
                 std::move(value), tok_line);
         }
 
-        // name.append(expr); or name.len();
+        // name.append(expr); or name.len() or etc.;
         else if (peek().get_token() == TokenType::DOT) {
             Token id = eat(TokenType::IDENTIFIER);
             eat(TokenType::DOT);
@@ -130,8 +130,9 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
                 eat(TokenType::RPAREN);
                 if (current_token().get_token() != TokenType::SEMICOLON)
                     throw MissingSemicolonException("append()", current_token().get_line());
+                int tok_line = current_token().get_line();
                 eat(TokenType::SEMICOLON);
-                return std::make_unique<ListAppendNode>(id.get_value(), std::move(val));
+                return std::make_unique<GenCollectionAppendNode>(id.get_value(), std::move(val), tok_line);
             }
 
             if (method == "len") {

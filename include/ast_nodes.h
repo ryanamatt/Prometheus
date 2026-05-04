@@ -259,38 +259,6 @@ public:
 };
 
 // ---------------------------------------------------------------------------
-// Generic Collections functions
-// ---------------------------------------------------------------------------
-
-class GenCollectionIndexNode : public ASTNode {
-public:
-    std::string name;
-    std::unique_ptr<ASTNode> index;
-    int token_line;
-
-    GenCollectionIndexNode(std::string name, std::unique_ptr<ASTNode> index, int token_line)
-        : name(std::move(name)), index(std::move(index)), token_line(token_line) {}
-
-    PrometheusValue accept(Visitor& visitor) override { return visitor.visit(this); }
-};
-
-/** `name[index] = value;` index assignment */
-class GenCollectionAssignNode : public ASTNode {
-public:
-    std::string name;
-    std::unique_ptr<ASTNode> index;
-    std::unique_ptr<ASTNode> value;
-    int token_line;
-
-    GenCollectionAssignNode(std::string name, std::unique_ptr<ASTNode> index,
-                   std::unique_ptr<ASTNode> value, int token_line)
-        : name(std::move(name)), index(std::move(index)), value(std::move(value)),
-        token_line(token_line) {}
-
-    PrometheusValue accept(Visitor& v) override { return v.visit(this); }
-};
-
-// ---------------------------------------------------------------------------
 // Lists
 // ---------------------------------------------------------------------------
 
@@ -316,18 +284,6 @@ public:
                  std::unique_ptr<ASTNode> value_node)
         : element_type(std::move(element_type)), name(std::move(name)),
           value_node(std::move(value_node)) {}
-
-    PrometheusValue accept(Visitor& v) override { return v.visit(this); }
-};
-
-/** `name.append(expr)` */
-class ListAppendNode : public ASTNode {
-public:
-    std::string name;
-    std::unique_ptr<ASTNode> value;
-
-    ListAppendNode(std::string name, std::unique_ptr<ASTNode> value)
-        : name(std::move(name)), value(std::move(value)) {}
 
     PrometheusValue accept(Visitor& v) override { return v.visit(this); }
 };
@@ -421,6 +377,51 @@ public:
                  std::unique_ptr<ASTNode> value_node)
         : key_type(std::move(key_type)), value_type(std::move(value_type)), 
         name(std::move(name)), value_node(std::move(value_node)) {}
+
+    PrometheusValue accept(Visitor& v) override { return v.visit(this); }
+};
+
+// ---------------------------------------------------------------------------
+// Generic Collections functions
+// ---------------------------------------------------------------------------
+
+class GenCollectionIndexNode : public ASTNode {
+public:
+    std::string name;
+    std::unique_ptr<ASTNode> index;
+    int token_line;
+
+    GenCollectionIndexNode(std::string name, std::unique_ptr<ASTNode> index, int token_line)
+        : name(std::move(name)), index(std::move(index)), token_line(token_line) {}
+
+    PrometheusValue accept(Visitor& visitor) override { return visitor.visit(this); }
+};
+
+/** `name[index] = value;` index assignment */
+class GenCollectionAssignNode : public ASTNode {
+public:
+    std::string name;
+    std::unique_ptr<ASTNode> index;
+    std::unique_ptr<ASTNode> value;
+    int token_line;
+
+    GenCollectionAssignNode(std::string name, std::unique_ptr<ASTNode> index,
+                   std::unique_ptr<ASTNode> value, int token_line)
+        : name(std::move(name)), index(std::move(index)), value(std::move(value)),
+        token_line(token_line) {}
+
+    PrometheusValue accept(Visitor& v) override { return v.visit(this); }
+};
+
+/** `name.append(expr)` */
+class GenCollectionAppendNode : public ASTNode {
+public:
+    std::string name;
+    std::unique_ptr<ASTNode> value;
+    int token_line;
+
+    GenCollectionAppendNode(std::string name, std::unique_ptr<ASTNode> value, int token_line)
+        : name(std::move(name)), value(std::move(value)), token_line(token_line) {}
 
     PrometheusValue accept(Visitor& v) override { return v.visit(this); }
 };
