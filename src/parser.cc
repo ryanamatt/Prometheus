@@ -1025,8 +1025,9 @@ std::unique_ptr<ASTNode> Parser::parse_term() {
             auto index = parse_expression();
             if (current_token().get_token() != TokenType::RBRACKET)
                 throw MissingBraceException('[', id.get_line());
+            int tok_line = current_token().get_line();
             eat(TokenType::RBRACKET);
-            return std::make_unique<ListIndexNode>(id.get_value(), std::move(index));
+            return std::make_unique<IndexNode>(id.get_value(), std::move(index), tok_line);
         }
         // name.len() as an expression (e.g. used in conditions)
         if (peek().get_token() == TokenType::DOT) {

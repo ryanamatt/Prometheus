@@ -259,6 +259,22 @@ public:
 };
 
 // ---------------------------------------------------------------------------
+// Generic Collections functions
+// ---------------------------------------------------------------------------
+
+class IndexNode : public ASTNode {
+public:
+    std::string name;
+    std::unique_ptr<ASTNode> index;
+    int token_line;
+
+    IndexNode(std::string name, std::unique_ptr<ASTNode> index, int token_line)
+        : name(std::move(name)), index(std::move(index)), token_line(token_line) {}
+
+    PrometheusValue accept(Visitor& visitor) override { return visitor.visit(this); }
+};
+
+// ---------------------------------------------------------------------------
 // Lists
 // ---------------------------------------------------------------------------
 
@@ -288,17 +304,17 @@ public:
     PrometheusValue accept(Visitor& v) override { return v.visit(this); }
 };
 
-/** `name[index]` index read */
-class ListIndexNode : public ASTNode {
-public:
-    std::string name;
-    std::unique_ptr<ASTNode> index;
+// /** `name[index]` index read */
+// class ListIndexNode : public ASTNode {
+// public:
+//     std::string name;
+//     std::unique_ptr<ASTNode> index;
 
-    ListIndexNode(std::string name, std::unique_ptr<ASTNode> index)
-        : name(std::move(name)), index(std::move(index)) {}
+//     ListIndexNode(std::string name, std::unique_ptr<ASTNode> index)
+//         : name(std::move(name)), index(std::move(index)) {}
 
-    PrometheusValue accept(Visitor& v) override { return v.visit(this); }
-};
+//     PrometheusValue accept(Visitor& v) override { return v.visit(this); }
+// };
 
 /** `name[index] = value;` index assignment */
 class ListAssignNode : public ASTNode {
@@ -418,6 +434,32 @@ public:
 
     PrometheusValue accept(Visitor& v) override { return v.visit(this); }
 };
+
+// /** `name[key]` index read */
+// class DictIndexNode : public ASTNode {
+// public:
+//     std::string name;
+//     std::unique_ptr<ASTNode> index;
+
+//     DictIndexNode(std::string name, std::unique_ptr<ASTNode> index)
+//         : name(std::move(name)), index(std::move(index)) {}
+
+//     PrometheusValue accept(Visitor& v) override { return v.visit(this); }
+// };
+
+// /** `name[index] = value;` index assignment */
+// class ListAssignNode : public ASTNode {
+// public:
+//     std::string name;
+//     std::unique_ptr<ASTNode> index;
+//     std::unique_ptr<ASTNode> value;
+
+//     ListAssignNode(std::string name, std::unique_ptr<ASTNode> index,
+//                    std::unique_ptr<ASTNode> value)
+//         : name(std::move(name)), index(std::move(index)), value(std::move(value)) {}
+
+//     PrometheusValue accept(Visitor& v) override { return v.visit(this); }
+// };
 
 // ---------------------------------------------------------------------------
 // Modules
