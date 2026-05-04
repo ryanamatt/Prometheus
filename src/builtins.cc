@@ -103,7 +103,7 @@ void register_builtins(
     // Accepts zero or one string argument used as a prompt.  Reads a line
     // from stdin and returns it as a str value.
     // -----------------------------------------------------------------------
-    native_functions["input"] = [](std::vector<PrometheusValue> args, int line) -> PrometheusValue {
+    native_functions["input"] = [](std::vector<PrometheusValue> args, int line) -> std::string {
         if (args.size() > 1)
             throw ArgumentCountException("input", 1, static_cast<int>(args.size()), line);
 
@@ -126,7 +126,7 @@ void register_builtins(
     //
     // Returns a list[int] matching Python's range() semantics.
     // -----------------------------------------------------------------------
-    native_functions["range"] = [](std::vector<PrometheusValue> args, int line) -> PrometheusValue {
+    native_functions["range"] = [](std::vector<PrometheusValue> args, int line) -> PrometheusListPtr {
         if (args.empty() || args.size() > 3)
             throw ArgumentCountException("range", 1, static_cast<int>(args.size()), line);
 
@@ -164,5 +164,30 @@ void register_builtins(
             throw ArgumentCountException("type", 1, static_cast<int>(args.size()), line);
 
         return builtin_type_name(args[0]);
+    };
+
+    native_functions["len"] = [](std::vector<PrometheusValue> args, int line) -> int {
+        if (args.size() != 1)
+            throw ArgumentCountException("len", 1, static_cast<int>(args.size()), line);
+
+        auto get_len_of_obj = args[0];
+
+        if (std::holds_alternative<std::string>(get_len_of_obj)) {
+            auto str = std::get<std::string>(get_len_of_obj);
+            return static_cast<int>(str.size());
+        }
+
+        if (std::holds_alternative<PrometheusListPtr>(get_len_of_obj)) {
+            auto ls = std::get<PrometheusListPtr>(get_len_of_obj);
+            return static_cast<int>(ls->elements.size());
+        }
+
+        if (std::holds_alternative<PrometheusDictPtr>(get_len_of_obj)) {
+            auto dict = std::get<PrometheusDictPtr>(get_len_of_obj);
+            return static_cast<int>(dict->dict_elements.size());
+        }
+
+        throw TypeException("Type is not suppred by len() function.", line);
+
     };
 }
