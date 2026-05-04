@@ -158,7 +158,6 @@ public:
     PrometheusValue visit(ListLengthNode* node) override;
     PrometheusValue visit(ListInsertNode* n) override;
     PrometheusValue visit(ListPopNode* n) override;
-    PrometheusValue visit(ListClearNode* n) override;
 
     PrometheusValue visit(DictLiteralNode* node) override;
     PrometheusValue visit(DictDeclNode* node) override;
@@ -167,6 +166,7 @@ public:
     PrometheusValue visit(GenCollectionAssignNode* n) override;
     PrometheusValue visit(GenCollectionAppendNode* n) override;
     PrometheusValue visit(GenCollectionRemoveNode* n) override;
+    PrometheusValue visit(GenCollectionClearNode* n) override;
 
     PrometheusValue visit(ImportNode* node) override;
     PrometheusValue visit(UseNode* node) override;

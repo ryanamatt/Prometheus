@@ -215,11 +215,11 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
                     throw MissingBraceException('(', id.get_line());
                 eat(TokenType::RPAREN);
                 if (current_token().get_token() != TokenType::SEMICOLON)
-                    throw MissingSemicolonException("pop()", current_token().get_line());
+                    throw MissingSemicolonException("clear()", current_token().get_line());
                 int line = current_token().get_line();
                 eat(TokenType::SEMICOLON);
 
-                return std::make_unique<ListClearNode>(id.get_value(), line);
+                return std::make_unique<GenCollectionClearNode>(id.get_value(), line);
             }
 
             throw ParseException(

@@ -824,20 +824,6 @@ PrometheusValue Interpreter::visit(ListPopNode* n) {
 }
 
 // ----------------------------------------------------------------------------
-// List Clear
-// ----------------------------------------------------------------------------
-
-PrometheusValue Interpreter::visit(ListClearNode* n) {
-    PrometheusValue var_name = get_var(n->name);
-    if (!std::holds_alternative<PrometheusListPtr>(var_name))
-        throw TypeException("'" + n->name + "' is not a list");
-    auto lst = std::get<PrometheusListPtr>(var_name);
-
-    lst->elements.clear();
-    return std::monostate{};
-}
-
-// ----------------------------------------------------------------------------
 // Dict literal
 // ----------------------------------------------------------------------------
 
@@ -1025,6 +1011,25 @@ PrometheusValue Interpreter::visit(GenCollectionRemoveNode* n) {
     }
 
     throw TypeException("'" + n->name + " does not have remove() function for type.");
+}
+
+PrometheusValue Interpreter::visit(GenCollectionClearNode* n) {
+    PrometheusValue var_name = get_var(n->name);
+
+    if (std::holds_alternative<PrometheusListPtr>(var_name)) {
+        auto lst = std::get<PrometheusListPtr>(var_name);
+
+        lst->elements.clear();
+        return std::monostate{};
+    }
+
+    if (std::holds_alternative<PrometheusDictPtr>(var_name)) {
+        auto dict = std::get<PrometheusDictPtr>(var_name);
+        dict->dict_elements.clear();
+        return std::monostate{};
+    }
+
+    throw TypeException("'" + n->name + "' is not a clearable type.", n->token_line);
 }
 
 // ----------------------------------------------------------------------------
