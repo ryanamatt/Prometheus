@@ -63,9 +63,9 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
         return parse_declaration();
     }
 
-    if (tt == TokenType::LIST) {
-        return parse_list_decl();
-    }
+    if (tt == TokenType::LIST) return parse_list_decl();
+    if (tt == TokenType::DICT) return parse_dict_decl();
+
 
     if (tt == TokenType::IDENTIFIER) {
         if (peek().get_token() == TokenType::INCREMENT) {
@@ -103,11 +103,13 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
             auto value = parse_expression();
             if (current_token().get_token() != TokenType::SEMICOLON)
                 throw MissingSemicolonException("list index assignment", current_token().get_line());
+            int tok_line = current_token().get_line();
             eat(TokenType::SEMICOLON);
-            return std::make_unique<ListAssignNode>(id.get_value(), std::move(index), std::move(value));
+            return std::make_unique<GenCollectionAssignNode>(id.get_value(), std::move(index), 
+                std::move(value), tok_line);
         }
 
-        // name.append(expr); or name.len();
+        // name.append(expr); or name.len() or etc.;
         else if (peek().get_token() == TokenType::DOT) {
             Token id = eat(TokenType::IDENTIFIER);
             eat(TokenType::DOT);
@@ -128,8 +130,9 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
                 eat(TokenType::RPAREN);
                 if (current_token().get_token() != TokenType::SEMICOLON)
                     throw MissingSemicolonException("append()", current_token().get_line());
+                int tok_line = current_token().get_line();
                 eat(TokenType::SEMICOLON);
-                return std::make_unique<ListAppendNode>(id.get_value(), std::move(val));
+                return std::make_unique<GenCollectionAppendNode>(id.get_value(), std::move(val), tok_line);
             }
 
             if (method == "len") {
@@ -141,8 +144,9 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
                 eat(TokenType::RPAREN);
                 if (current_token().get_token() != TokenType::SEMICOLON)
                     throw MissingSemicolonException("len()", current_token().get_line());
+                int token_line = current_token().get_line();
                 eat(TokenType::SEMICOLON);
-                return std::make_unique<ListLengthNode>(id.get_value());
+                return std::make_unique<GenCollectionLengthNode>(id.get_value(), token_line);
             }
 
             if (method == "insert") {
@@ -173,16 +177,20 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
                 if (current_token().get_token() != TokenType::LPAREN)
                     throw MissingBraceException('(', current_token().get_line());
                 eat(TokenType::LPAREN);
+
+                std::vector<std::unique_ptr<ASTNode>> args;
+                if (current_token().get_token() != TokenType::RPAREN)
+                    args.push_back(parse_expression());
+
                 if (current_token().get_token() != TokenType::RPAREN)
                     throw MissingBraceException('(', id.get_line());
-
                 eat(TokenType::RPAREN);
                 if (current_token().get_token() != TokenType::SEMICOLON)
                     throw MissingSemicolonException("pop()", current_token().get_line());
                 int line = current_token().get_line();
                 eat(TokenType::SEMICOLON);
 
-                return std::make_unique<ListPopNode>(id.get_value(), line);
+                return std::make_unique<GenCollectionPopNode>(id.get_value(), std::move(args), line);
             }
 
             if (method == "remove") {
@@ -200,7 +208,7 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
                 int line = current_token().get_line();
                 eat(TokenType::SEMICOLON);
 
-                return std::make_unique<ListRemoveNode>(id.get_value(), std::move(value), line);
+                return std::make_unique<GenCollectionRemoveNode>(id.get_value(), std::move(value), line);
             }
 
             if (method == "clear") {
@@ -212,11 +220,11 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
                     throw MissingBraceException('(', id.get_line());
                 eat(TokenType::RPAREN);
                 if (current_token().get_token() != TokenType::SEMICOLON)
-                    throw MissingSemicolonException("pop()", current_token().get_line());
+                    throw MissingSemicolonException("clear()", current_token().get_line());
                 int line = current_token().get_line();
                 eat(TokenType::SEMICOLON);
 
-                return std::make_unique<ListClearNode>(id.get_value(), line);
+                return std::make_unique<GenCollectionClearNode>(id.get_value(), line);
             }
 
             throw ParseException(
@@ -334,6 +342,66 @@ std::unique_ptr<ListDeclNode> Parser::parse_list_decl() {
                                         current_token().get_line());
     eat(TokenType::SEMICOLON);
     return std::make_unique<ListDeclNode>(element_type, name, std::move(value_node));
+}
+
+std::unique_ptr<DictDeclNode> Parser::parse_dict_decl() {
+    Token dict_tok = eat(TokenType::DICT);
+
+    // dict[key_type, value_type]
+    if (current_token().get_token() != TokenType::LBRACKET)
+        throw MissingBraceException('[', dict_tok.get_line());
+    eat(TokenType::LBRACKET);
+
+    TokenType kt = current_token().get_token();
+    if (kt != TokenType::INT && kt != TokenType::STR &&
+        kt != TokenType::DOUBLE && kt != TokenType::BOOL) {
+        throw ParseException(
+            "Expected element type (int, double, str, bool) inside dict{key_type, value_type}, \
+            got '" + current_token().get_value() + "'",
+            current_token().get_line());
+    }
+    std::string key_type = eat(kt).get_value();
+
+    eat(TokenType::COMMA);
+
+    TokenType vt = current_token().get_token();
+    if (vt != TokenType::INT && vt != TokenType::STR &&
+        vt != TokenType::DOUBLE && vt != TokenType::BOOL) {
+        throw ParseException(
+            "Expected element type (int, double, str, bool) inside dict{key_type, value_type}, \
+            got '" + current_token().get_value() + "'",
+            current_token().get_line());
+    }
+    std::string value_type = eat(vt).get_value();
+
+    if (current_token().get_token() != TokenType::RBRACKET)
+        throw MissingBraceException('[', dict_tok.get_line());
+    eat(TokenType::RBRACKET);
+
+    // variable name
+    if (current_token().get_token() != TokenType::IDENTIFIER) {
+        throw ParseException(
+            "Expected variable name after dict[" + key_type + ": " + value_type + "]",
+            current_token().get_line());
+    }
+    std::string name = eat(TokenType::IDENTIFIER).get_value();
+
+    // optional initialiser (defaults to empty dict)
+    std::unique_ptr<ASTNode> value_node;
+    if (current_token().get_token() == TokenType::ASSIGN) {
+        eat(TokenType::ASSIGN);
+        value_node = parse_expression(); // should parse a DictLiteralNode
+    } else {
+        // default: empty dict literal
+        value_node = std::make_unique<DictLiteralNode>(
+            std::unordered_map<std::unique_ptr<ASTNode>, std::unique_ptr<ASTNode>>{});
+    }
+
+    if (current_token().get_token() != TokenType::SEMICOLON)
+        throw MissingSemicolonException("dict declaration of '" + name + "'",
+                                        current_token().get_line());
+    eat(TokenType::SEMICOLON);
+    return std::make_unique<DictDeclNode>(key_type, value_type, name, std::move(value_node));
 }
 
 std::unique_ptr<ASTNode> Parser::parse_identifier() {
@@ -904,6 +972,38 @@ std::unique_ptr<ASTNode> Parser::parse_term() {
         eat(TokenType::RBRACKET);
         return std::make_unique<ListLiteralNode>(std::move(elems));
     }
+    
+    // Dict Literal: {key: value, key: value}
+    if (tt == TokenType::LBRACE) {
+        Token lb = eat(TokenType::LBRACE);
+        std::unordered_map<std::unique_ptr<ASTNode>, std::unique_ptr<ASTNode>> dict_elems;
+        if (current_token().get_token() != TokenType::RBRACE) {
+
+            std::unique_ptr<ASTNode> key_node = parse_expression();
+            // if (current_token().get_token() != TokenType::COLON)
+            //         throw ParseException("Colon need to seperate key and value in dict", current_token().get_line());
+            eat(TokenType::COLON);
+            std::unique_ptr<ASTNode> value_node = parse_expression();
+            dict_elems.insert_or_assign(std::move(key_node), std::move(value_node)); 
+
+            while (current_token().get_token() == TokenType::COMMA) {
+                eat(TokenType::COMMA);
+                if (current_token().get_token() == TokenType::RBRACE)
+                    throw ParseException("Trailing comma in dict literal", current_token().get_line());
+
+                std::unique_ptr<ASTNode> key_node = parse_expression();
+                // if (current_token().get_token() == TokenType::COLON)
+                //         throw ParseException("Colon need to seperate key and value in dict", current_token().get_line());
+                eat(TokenType::COLON);
+                std::unique_ptr<ASTNode> value_node = parse_expression();
+                dict_elems.insert_or_assign(std::move(key_node), std::move(value_node));         
+            }
+        }
+        if (current_token().get_token() != TokenType::RBRACE)
+            throw MissingBraceException('[', lb.get_line());
+        eat(TokenType::RBRACE);
+        return std::make_unique<DictLiteralNode>(std::move(dict_elems));
+    }
 
     if (tt == TokenType::INT || tt == TokenType::STR || tt == TokenType::DOUBLE) {
         if (peek().get_token() == TokenType::LPAREN) {
@@ -933,8 +1033,9 @@ std::unique_ptr<ASTNode> Parser::parse_term() {
             auto index = parse_expression();
             if (current_token().get_token() != TokenType::RBRACKET)
                 throw MissingBraceException('[', id.get_line());
+            int tok_line = current_token().get_line();
             eat(TokenType::RBRACKET);
-            return std::make_unique<ListIndexNode>(id.get_value(), std::move(index));
+            return std::make_unique<GenCollectionIndexNode>(id.get_value(), std::move(index), tok_line);
         }
         // name.len() as an expression (e.g. used in conditions)
         if (peek().get_token() == TokenType::DOT) {
@@ -950,18 +1051,24 @@ std::unique_ptr<ASTNode> Parser::parse_term() {
                 eat(TokenType::LPAREN);
                 if (current_token().get_token() != TokenType::RPAREN)
                     throw MissingBraceException('(', id.get_line());
+                int token_line = current_token().get_line();
                 eat(TokenType::RPAREN);
-                return std::make_unique<ListLengthNode>(id.get_value());
+                return std::make_unique<GenCollectionLengthNode>(id.get_value(), token_line);
             }
 
             if (method == "pop") {
                 if (current_token().get_token() != TokenType::LPAREN)
                     throw MissingBraceException('(', id.get_line());
                 eat(TokenType::LPAREN);
+
+                std::vector<std::unique_ptr<ASTNode>> args;
+                if (current_token().get_token() != TokenType::RPAREN)
+                    args.push_back(parse_expression());
+
                 if (current_token().get_token() != TokenType::RPAREN)
                     throw MissingBraceException('(', id.get_line());
                 eat(TokenType::RPAREN);
-                return std::make_unique<ListPopNode>(id.get_value(), id.get_line());
+                return std::make_unique<GenCollectionPopNode>(id.get_value(), std::move(args), id.get_line());
             }
 
             throw ParseException(

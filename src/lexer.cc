@@ -179,6 +179,7 @@ Token Lexer::make_identifier() {
         {"bool",   TokenType::BOOL},
         {"void",   TokenType::VOID},
         {"list",   TokenType::LIST},
+        {"dict",   TokenType::DICT},
 
         {"if",     TokenType::IF},
         {"elif",   TokenType::ELIF},

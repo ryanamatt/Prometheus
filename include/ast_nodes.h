@@ -5,6 +5,7 @@
 #include <vector>
 #include <memory>
 #include <utility>
+#include <unordered_map>
 #include "prometheus_types.h"
 #include "visitor.h"
 
@@ -287,54 +288,6 @@ public:
     PrometheusValue accept(Visitor& v) override { return v.visit(this); }
 };
 
-/** `name[index]` index read */
-class ListIndexNode : public ASTNode {
-public:
-    std::string name;
-    std::unique_ptr<ASTNode> index;
-
-    ListIndexNode(std::string name, std::unique_ptr<ASTNode> index)
-        : name(std::move(name)), index(std::move(index)) {}
-
-    PrometheusValue accept(Visitor& v) override { return v.visit(this); }
-};
-
-/** `name[index] = value;` index assignment */
-class ListAssignNode : public ASTNode {
-public:
-    std::string name;
-    std::unique_ptr<ASTNode> index;
-    std::unique_ptr<ASTNode> value;
-
-    ListAssignNode(std::string name, std::unique_ptr<ASTNode> index,
-                   std::unique_ptr<ASTNode> value)
-        : name(std::move(name)), index(std::move(index)), value(std::move(value)) {}
-
-    PrometheusValue accept(Visitor& v) override { return v.visit(this); }
-};
-
-/** `name.append(expr)` */
-class ListAppendNode : public ASTNode {
-public:
-    std::string name;
-    std::unique_ptr<ASTNode> value;
-
-    ListAppendNode(std::string name, std::unique_ptr<ASTNode> value)
-        : name(std::move(name)), value(std::move(value)) {}
-
-    PrometheusValue accept(Visitor& v) override { return v.visit(this); }
-};
-
-/** `name.len()` — evaluates to int */
-class ListLengthNode : public ASTNode {
-public:
-    std::string name;
-
-    explicit ListLengthNode(std::string name) : name(std::move(name)) {}
-
-    PrometheusValue accept(Visitor& v) override { return v.visit(this); }
-};
-
 /**`name.insert(i, x)` -inserts x at index i */
 class ListInsertNode : public ASTNode {
 public:
@@ -349,39 +302,129 @@ public:
     PrometheusValue accept(Visitor& v) override { return v.visit(this); }
 };
 
-/**`name.pop()` - Returns the item at the last index and removes it.*/
-class ListPopNode : public ASTNode {
-public:
-    std::string name;
-    int line;
+// ---------------------------------------------------------------------------
+// Dicts
+// ---------------------------------------------------------------------------
 
-    explicit ListPopNode(std::string name, int line)
-        : name(std::move(name)), line(line) {}
+/**{key: value, key: value, ...} dict literal*/
+class DictLiteralNode : public ASTNode {
+public:
+    std::unordered_map<std::unique_ptr<ASTNode>, std::unique_ptr<ASTNode>> dict_elements;
+
+    explicit DictLiteralNode(
+        std::unordered_map<std::unique_ptr<ASTNode>, std::unique_ptr<ASTNode>> dict_elements)
+        : dict_elements(std::move(dict_elements)) {}
 
     PrometheusValue accept(Visitor& v) override { return v.visit(this); }
 };
 
-/**`name.remove(val)` - Removes the first occurence of the value*/
-class ListRemoveNode : public ASTNode {
+/** `dict[key_type, value_type] name = {key: value, key2: value2};` */
+class DictDeclNode : public ASTNode {
+public:
+    std::string key_type;   // "int", "double", "str", "bool"
+    std::string value_type; // "int", "double", "str", "bool"
+    std::string name;
+    std::unique_ptr<ASTNode> value_node;
+
+    DictDeclNode(std::string key_type, std::string value_type, std::string name,
+                 std::unique_ptr<ASTNode> value_node)
+        : key_type(std::move(key_type)), value_type(std::move(value_type)), 
+        name(std::move(name)), value_node(std::move(value_node)) {}
+
+    PrometheusValue accept(Visitor& v) override { return v.visit(this); }
+};
+
+// ---------------------------------------------------------------------------
+// Generic Collections functions
+// ---------------------------------------------------------------------------
+
+class GenCollectionIndexNode : public ASTNode {
+public:
+    std::string name;
+    std::unique_ptr<ASTNode> index;
+    int token_line;
+
+    GenCollectionIndexNode(std::string name, std::unique_ptr<ASTNode> index, int token_line)
+        : name(std::move(name)), index(std::move(index)), token_line(token_line) {}
+
+    PrometheusValue accept(Visitor& visitor) override { return visitor.visit(this); }
+};
+
+/** `name[index] = value;` index assignment */
+class GenCollectionAssignNode : public ASTNode {
+public:
+    std::string name;
+    std::unique_ptr<ASTNode> index;
+    std::unique_ptr<ASTNode> value;
+    int token_line;
+
+    GenCollectionAssignNode(std::string name, std::unique_ptr<ASTNode> index,
+                   std::unique_ptr<ASTNode> value, int token_line)
+        : name(std::move(name)), index(std::move(index)), value(std::move(value)),
+        token_line(token_line) {}
+
+    PrometheusValue accept(Visitor& v) override { return v.visit(this); }
+};
+
+/** `name.append(expr)` */
+class GenCollectionAppendNode : public ASTNode {
 public:
     std::string name;
     std::unique_ptr<ASTNode> value;
-    int line;
+    int token_line;
 
-    explicit ListRemoveNode(std::string name, std::unique_ptr<ASTNode> value, int line)
-        : name(std::move(name)), value(std::move(value)), line(line) {}
+    GenCollectionAppendNode(std::string name, std::unique_ptr<ASTNode> value, int token_line)
+        : name(std::move(name)), value(std::move(value)), token_line(token_line) {}
+
+    PrometheusValue accept(Visitor& v) override { return v.visit(this); }
+};
+
+/** `name.len()` — evaluates to int */
+class GenCollectionLengthNode : public ASTNode {
+public:
+    std::string name;
+    int token_line;
+
+    explicit GenCollectionLengthNode(std::string name, int token_line) 
+        : name(std::move(name)), token_line(token_line) {}
 
     PrometheusValue accept(Visitor& v) override { return v.visit(this); }
 };
 
 /**`name.remove(val)` - Removes the first occurence of the value*/
-class ListClearNode : public ASTNode {
+class GenCollectionRemoveNode : public ASTNode {
 public:
     std::string name;
-    int line;
+    std::unique_ptr<ASTNode> value;
+    int token_line;
 
-    explicit ListClearNode(std::string name, int line)
-        : name(std::move(name)), line(line) {}
+    explicit GenCollectionRemoveNode(std::string name, std::unique_ptr<ASTNode> value, int token_line)
+        : name(std::move(name)), value(std::move(value)), token_line(token_line) {}
+
+    PrometheusValue accept(Visitor& v) override { return v.visit(this); }
+};
+
+/**`name.pop()` - Returns the item at the last index and removes it.*/
+class GenCollectionPopNode : public ASTNode {
+public:
+    std::string name;
+    std::vector<std::unique_ptr<ASTNode>> args;
+    int token_line;
+
+    explicit GenCollectionPopNode(std::string name, std::vector<std::unique_ptr<ASTNode>> args, int token_line)
+        : name(std::move(name)), args(std::move(args)), token_line(token_line) {}
+
+    PrometheusValue accept(Visitor& v) override { return v.visit(this); }
+};
+
+/**`name.clear(val)` - Clears the Collection*/
+class GenCollectionClearNode : public ASTNode {
+public:
+    std::string name;
+    int token_line;
+
+    explicit GenCollectionClearNode(std::string name, int token_line)
+        : name(std::move(name)), token_line(token_line) {}
 
     PrometheusValue accept(Visitor& v) override { return v.visit(this); }
 };

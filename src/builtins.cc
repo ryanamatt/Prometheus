@@ -16,6 +16,11 @@ static std::string builtin_type_name(const PrometheusValue& v) {
         const auto& lst = std::get<PrometheusListPtr>(v);
         return "list[" + (lst ? lst->element_type : "?") + "]";
     }
+    if (std::holds_alternative<PrometheusDictPtr>(v)) {
+        const auto& dict = std::get<PrometheusDictPtr>(v);
+        return "dict[" + (dict ? dict->key_type : "?") + ", " + 
+                         (dict ? dict->value_type : "?") + "]";
+    }
     return "None";
 }
 
@@ -41,6 +46,18 @@ static std::string value_to_string(const PrometheusValue& value) {
                 out += value_to_string(elems[i]);
         }
         return out + "]";
+    }
+    if (auto* dp = std::get_if<PrometheusDictPtr>(&value)) {
+        if (!*dp) return "{}";
+        std::string out = "{";
+        const auto& elements = (*dp)->dict_elements;
+        bool first = true;
+        for (const auto& [k, v] : elements) {
+            if (!first) out += ", ";
+            out += value_to_string(k) + ": " + value_to_string(v);
+            first = false;
+        }
+        return out + "}";
     }
     return "None";
 }

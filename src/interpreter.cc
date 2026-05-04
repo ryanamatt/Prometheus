@@ -252,6 +252,11 @@ static std::string type_name(const PrometheusValue& v) {
         const auto& lst = std::get<PrometheusListPtr>(v);
         return "list[" + (lst ? lst->element_type : "?") + "]";
     }
+    if (std::holds_alternative<PrometheusDictPtr>(v)) {
+        const auto& dict = std::get<PrometheusDictPtr>(v);
+        return "dict[" + (dict ? dict->key_type : "?") + ", " + 
+                         (dict ? dict->value_type : "?") + "]";
+    }
     return "None";
 }
 
@@ -310,6 +315,18 @@ static std::string value_to_string(const PrometheusValue& value) {
         }
         return out + "]";
     }
+    if (auto* dp = std::get_if<PrometheusDictPtr>(&value)) {
+        if (!*dp) return "{}";
+        std::string out = "{";
+        const auto& elements = (*dp)->dict_elements;
+        bool first = true;
+        for (const auto& [k, v] : elements) {
+            if (!first) out += ", ";
+            out += value_to_string(k) + ": " + value_to_string(v);
+            first = false;
+        }
+        return out + "}";
+    }
     return "None";
 }
 
@@ -345,6 +362,12 @@ static PrometheusValue coerce_to_element(const std::string& elem_type,
                                           const PrometheusValue& value,
                                           int line = 0) {
     return coerce_to_declared(elem_type, "<list element>", value, line);
+}
+
+static PrometheusValue coerce_to_element_dict(const std::string& elem_type,
+                                          const PrometheusValue& value,
+                                          int line = 0) {
+    return coerce_to_declared(elem_type, "<dict element>", value, line);
 }
 
 // ============================================================================
@@ -754,73 +777,6 @@ PrometheusValue Interpreter::visit(ListDeclNode* n) {
 }
 
 // ----------------------------------------------------------------------------
-// List index read
-// ----------------------------------------------------------------------------
-
-PrometheusValue Interpreter::visit(ListIndexNode* n) {
-    PrometheusValue var = get_var(n->name);
-    if (!std::holds_alternative<PrometheusListPtr>(var))
-        throw TypeException("'" + n->name + "' is not a list");
-
-    auto lst = std::get<PrometheusListPtr>(var);
-    int idx  = get_int(visit(n->index.get()));
-
-    if (idx < 0 || idx >= (int)lst->elements.size())
-        throw RuntimeException(
-            "Index " + std::to_string(idx) + " out of bounds for list '" +
-            n->name + "' (size " + std::to_string(lst->elements.size()) + ")");
-
-    return lst->elements[idx];
-}
-
-// ----------------------------------------------------------------------------
-// List index assign
-// ----------------------------------------------------------------------------
-
-PrometheusValue Interpreter::visit(ListAssignNode* n) {
-    PrometheusValue var = get_var(n->name);
-    if (!std::holds_alternative<PrometheusListPtr>(var))
-        throw TypeException("'" + n->name + "' is not a list");
-
-    auto lst = std::get<PrometheusListPtr>(var);
-    int idx  = get_int(visit(n->index.get()));
-
-    if (idx < 0 || idx >= (int)lst->elements.size())
-        throw RuntimeException(
-            "Index " + std::to_string(idx) + " out of bounds for list '" +
-            n->name + "' (size " + std::to_string(lst->elements.size()) + ")");
-
-    lst->elements[idx] = coerce_to_element(lst->element_type, visit(n->value.get()));
-    return lst->elements[idx];
-}
-
-// ----------------------------------------------------------------------------
-// List append
-// ----------------------------------------------------------------------------
-
-PrometheusValue Interpreter::visit(ListAppendNode* n) {
-    PrometheusValue var = get_var(n->name);
-    if (!std::holds_alternative<PrometheusListPtr>(var))
-        throw TypeException("'" + n->name + "' is not a list");
-
-    auto lst = std::get<PrometheusListPtr>(var);
-    lst->elements.push_back(coerce_to_element(lst->element_type, visit(n->value.get())));
-    return std::monostate{};
-}
-
-// ----------------------------------------------------------------------------
-// List length
-// ----------------------------------------------------------------------------
-
-PrometheusValue Interpreter::visit(ListLengthNode* n) {
-    PrometheusValue var = get_var(n->name);
-    if (!std::holds_alternative<PrometheusListPtr>(var))
-        throw TypeException("'" + n->name + "' is not a list");
-
-    return static_cast<int>(std::get<PrometheusListPtr>(var)->elements.size());
-}
-
-// ----------------------------------------------------------------------------
 // List insert
 // ----------------------------------------------------------------------------
 
@@ -838,52 +794,282 @@ PrometheusValue Interpreter::visit(ListInsertNode* n) {
 }
 
 // ----------------------------------------------------------------------------
-// List Pop
+// Dict literal
 // ----------------------------------------------------------------------------
 
-PrometheusValue Interpreter::visit(ListPopNode* n) {
-    PrometheusValue var_name = get_var(n->name);
-    if (!std::holds_alternative<PrometheusListPtr>(var_name))
-        throw TypeException("'" + n->name + "' is not a list");
-    auto lst = std::get<PrometheusListPtr>(var_name);
+PrometheusValue Interpreter::visit(DictLiteralNode* n) {
+    auto dict = std::make_shared<PrometheusDict>();
+    dict->key_type = "";    // stamped by DictDeclNode
+    dict->value_type = "";  // stamped by DictDeclNode
 
-    if (lst->elements.empty())
+
+    for (auto& [key, value] : n->dict_elements) {
+        PrometheusValue k = visit(key.get());
+        PrometheusValue v = visit(value.get());
+
+        if (dict->key_type.empty() && !dict->dict_elements.empty() == 0) {
+            dict->key_type = type_name(k);
+            dict->value_type = type_name(v);
+        }
+
+        dict->dict_elements[k] = v;
+    }
+
+    return dict;
+}
+
+PrometheusValue Interpreter::visit(DictDeclNode* n) {
+    PrometheusValue raw_dict = visit(n->value_node.get());
+    if (!std::holds_alternative<PrometheusDictPtr>(raw_dict))
+        throw TypeException("Expected a dict literal for declaration of '" + n->name + "'");
+
+    auto dict = std::get<PrometheusDictPtr>(raw_dict);
+    dict->key_type = n->key_type;
+    dict->value_type = n->value_type;
+
+    // Create a temporary map to hold coerced values
+    std::unordered_map<PrometheusValue, PrometheusValue> coerced_elements;
+
+    for (auto& [key, value] : dict->dict_elements) {
+        // Coerce both key and value
+        PrometheusValue new_key = coerce_to_element_dict(n->key_type, key);
+        PrometheusValue new_val = coerce_to_element_dict(n->value_type, value);
+        
+        coerced_elements[new_key] = new_val;
+    }
+
+    // Replace the old elements with the coerced ones
+    dict->dict_elements = std::move(coerced_elements);
+    declare_var(n->name, dict);
+    return dict;
+}
+
+// ---------------------------------------------------------------------------
+// General Collection Nodes
+// ---------------------------------------------------------------------------
+
+PrometheusValue Interpreter::visit(GenCollectionIndexNode* n) {
+    PrometheusValue var = get_var(n->name); // Look up variable in scope
+    PrometheusValue idx_val = visit(n->index.get()); // Evaluate the index/key
+
+    // Handle List Case
+    if (std::holds_alternative<PrometheusListPtr>(var)) {
+        auto lst = std::get<PrometheusListPtr>(var);
+        int idx = get_int(idx_val); // Ensure index is an integer
+        
+        if (idx < 0 || idx >= (int)lst->elements.size())
+            throw RuntimeException(
+            "Index " + std::to_string(idx) + " out of bounds for list '" +
+            n->name + "' (size " + std::to_string(lst->elements.size()) + ")");
+        
+        return lst->elements[idx];
+    }
+
+    // Handle Dictionary Case
+    if (std::holds_alternative<PrometheusDictPtr>(var)) {
+        auto dict = std::get<PrometheusDictPtr>(var);
+        
+        // Check if the key exists in the dictionary map
+        auto it = dict->dict_elements.find(idx_val);
+        if (it == dict->dict_elements.end()) {
+            throw RuntimeException("Key error: " + value_to_string(idx_val), n->token_line);
+        }
+        
+        return it->second;
+    }
+
+    throw TypeException("'" + n->name + "' is not indexable", n->token_line);
+}
+
+PrometheusValue Interpreter::visit(GenCollectionAssignNode* n) {
+    PrometheusValue var = get_var(n->name);
+
+    // Handle Lists
+    if (std::holds_alternative<PrometheusListPtr>(var)) {
+        auto lst = std::get<PrometheusListPtr>(var);
+        int idx  = get_int(visit(n->index.get()));
+
+        if (idx < 0 || idx >= (int)lst->elements.size())
+            throw RuntimeException(
+                "Index " + std::to_string(idx) + " out of bounds for list '" +
+                n->name + "' (size " + std::to_string(lst->elements.size()) + ")");
+
+        lst->elements[idx] = coerce_to_element(lst->element_type, visit(n->value.get()));
+        return lst->elements[idx];
+    }
+
+    // Handle Dicts
+    if (std::holds_alternative<PrometheusDictPtr>(var)) {
+        auto dict = std::get<PrometheusDictPtr>(var);
+        PrometheusValue key = visit(n->index.get());
+        
+        key = coerce_to_element_dict(dict->key_type, key, n->token_line);
+
+        PrometheusValue val = visit(n->value.get());
+        val = coerce_to_element_dict(dict->value_type, val, n->token_line);
+
+        dict->dict_elements[key] = val;
+        return val;
+    }
+
+    throw TypeException("'" + n->name + "' is not assignable", n->token_line);
+}
+
+PrometheusValue Interpreter::visit(GenCollectionAppendNode* n) {
+    PrometheusValue var = get_var(n->name);
+
+    // Handle Lists
+    if (std::holds_alternative<PrometheusListPtr>(var)) {
+        auto lst = std::get<PrometheusListPtr>(var);
+        lst->elements.push_back(coerce_to_element(lst->element_type, visit(n->value.get())));
         return std::monostate{};
+    }
 
-    PrometheusValue lastValue = lst->elements.back();
-    lst->elements.pop_back();
-    return lastValue;
+    // Handle Dictionaries
+    if (std::holds_alternative<PrometheusDictPtr>(var)) {
+        auto target_dict = std::get<PrometheusDictPtr>(var);
+        PrometheusValue val_to_append = visit(n->value.get());
+
+        // expect the argument to append() to be another dictionary (merge behavior)
+        if (std::holds_alternative<PrometheusDictPtr>(val_to_append)) {
+            auto source_dict = std::get<PrometheusDictPtr>(val_to_append);
+            
+            // Validate that types match before merging
+            if (source_dict->key_type != target_dict->key_type || 
+                source_dict->value_type != target_dict->value_type) {
+                throw TypeException("Type mismatch: Cannot append dict of type " + 
+                    type_name(val_to_append) + " to " + type_name(var), n->token_line);
+            }
+
+            // Merge keys/values from source into target
+            for (auto const& [key, val] : source_dict->dict_elements) {
+                target_dict->dict_elements[key] = val;
+            }
+            return std::monostate{};
+        } 
+        else
+            throw TypeException("Append to dict requires another dict (merge) at line " + 
+                std::to_string(n->token_line));
+    }
+
+    throw TypeException("'" + n->name + "' is not appendable", n->token_line);
 }
 
-// ----------------------------------------------------------------------------
-// List Remove
-// ----------------------------------------------------------------------------
+PrometheusValue Interpreter::visit(GenCollectionLengthNode* n) {
+    PrometheusValue var = get_var(n->name);
 
-PrometheusValue Interpreter::visit(ListRemoveNode* n) {
-    PrometheusValue var_name = get_var(n->name);
-    if (!std::holds_alternative<PrometheusListPtr>(var_name))
-        throw TypeException("'" + n->name + "' is not a list");
-    auto lst = std::get<PrometheusListPtr>(var_name);
+    if (std::holds_alternative<PrometheusListPtr>(var)) {
+        auto lst = std::get<PrometheusListPtr>(var);
+        auto len = lst->elements.size();
+        return static_cast<int>(len);
+    }
 
-    PrometheusValue value = visit(n->value.get());
-    auto it = std::find(lst->elements.begin(), lst->elements.end(), value);
-    if (it != lst->elements.end())
-        lst->elements.erase(it);
-    return std::monostate{};
+    if (std::holds_alternative<PrometheusDictPtr>(var)) {
+        auto dict = std::get<PrometheusDictPtr>(var);
+        auto len = dict->dict_elements.size();
+        return static_cast<int>(len);
+    }
+
+    throw TypeException("'" + n->name + "' does not have a length");
 }
 
-// ----------------------------------------------------------------------------
-// List Clear
-// ----------------------------------------------------------------------------
-
-PrometheusValue Interpreter::visit(ListClearNode* n) {
+PrometheusValue Interpreter::visit(GenCollectionRemoveNode* n) {
     PrometheusValue var_name = get_var(n->name);
-    if (!std::holds_alternative<PrometheusListPtr>(var_name))
-        throw TypeException("'" + n->name + "' is not a list");
-    auto lst = std::get<PrometheusListPtr>(var_name);
 
-    lst->elements.clear();
-    return std::monostate{};
+    // List Case Remove first instance of value
+    if (std::holds_alternative<PrometheusListPtr>(var_name)) {
+        auto lst = std::get<PrometheusListPtr>(var_name);
+
+        PrometheusValue value = visit(n->value.get());
+        auto it = std::find(lst->elements.begin(), lst->elements.end(), value);
+        if (it != lst->elements.end())
+            lst->elements.erase(it);
+        return std::monostate{};
+    }
+
+    // Dict Case Remove instance of key
+    if (std::holds_alternative<PrometheusDictPtr>(var_name)) {
+        auto dict = std::get<PrometheusDictPtr>(var_name);
+
+        PrometheusValue value = visit(n->value.get());
+        auto it = dict->dict_elements.find(value);
+        if (it != dict->dict_elements.end())
+            dict->dict_elements.erase(it);
+        return std::monostate{};
+    }
+
+    throw TypeException("'" + n->name + " does not have remove() function for type.");
+}
+
+PrometheusValue Interpreter::visit(GenCollectionPopNode* n) {
+    PrometheusValue var_name = get_var(n->name);
+
+    if (std::holds_alternative<PrometheusListPtr>(var_name)) {
+        auto lst = std::get<PrometheusListPtr>(var_name);
+
+        if (lst->elements.empty())
+            return std::monostate{};
+
+        // Take 1 Arg which is the index to pop at
+        if (!n->args.empty()) {
+            if (n->args.size() > 1)
+                throw ArgumentCountException("list.pop()", 1, (int)n->args.size(), n->token_line);
+            int idx = get_int(visit(n->args[0].get()));
+            auto popped_value = lst->elements[idx];
+            lst->elements.erase(lst->elements.begin() + idx);
+            return popped_value;
+        }
+
+        // Default Case No arguments pop last value
+        PrometheusValue lastValue = lst->elements.back();
+        lst->elements.pop_back();
+        return lastValue;
+    }
+
+    if (std::holds_alternative<PrometheusDictPtr>(var_name)) {
+        auto dict = std::get<PrometheusDictPtr>(var_name);
+
+        if (dict->dict_elements.empty())
+            return std::monostate{};
+
+        // Take 1 Arg which is the index to pop at
+        if (!n->args.empty()) {
+            if (n->args.size() > 1)
+                throw ArgumentCountException("dict.pop()", 1, (int)n->args.size(), n->token_line);
+            auto idx = visit(n->args[0].get());
+            auto co_idx = coerce_to_declared(dict->key_type, "dict<index>", idx, n->token_line);
+            auto it = dict->dict_elements.find(co_idx);
+            if (it != dict->dict_elements.end()) {
+                auto value = it->second;
+                dict->dict_elements.erase(it);
+                return value;
+            }
+            return std::monostate{}; // Didn't find value
+        }
+        // Dict.pop() requires at least one argument since it is not ordered
+        throw ArgumentCountException("dict.pop()", 1, (int)n->args.size(), n->token_line);
+    }
+
+    throw TypeException("'" + n->name + "' is not popable", n->token_line);
+}
+
+PrometheusValue Interpreter::visit(GenCollectionClearNode* n) {
+    PrometheusValue var_name = get_var(n->name);
+
+    if (std::holds_alternative<PrometheusListPtr>(var_name)) {
+        auto lst = std::get<PrometheusListPtr>(var_name);
+
+        lst->elements.clear();
+        return std::monostate{};
+    }
+
+    if (std::holds_alternative<PrometheusDictPtr>(var_name)) {
+        auto dict = std::get<PrometheusDictPtr>(var_name);
+        dict->dict_elements.clear();
+        return std::monostate{};
+    }
+
+    throw TypeException("'" + n->name + "' is not a clearable type.", n->token_line);
 }
 
 // ----------------------------------------------------------------------------
