@@ -84,6 +84,16 @@ See what the modules documentation here.
 * **Type Casting**:  
   * int(value), double(value), str(value), bool(value).
 
+## **Collections**
+
+Collections Functions done by name.func()
+
+* .append(value) Add a new value to end of collection
+* .len() -> returns int which is length of collection
+* .pop() returns last value and removes it from collection.
+* .remove(value) remvoes first instance of value
+*. clear() clears the collection
+
 ### **Lists**
 
 Lists are ordered collections of a single type. They use the syntax list\[type\].
@@ -98,14 +108,23 @@ Lists are ordered collections of a single type. They use the syntax list\[type\]
 
 Can do nums[i] for specific value at index or assign a value to that index
 
-List Functions done by listName.func()
-
-* .append(value) Add a new value to end of list
-* .len() -> returns int which is length of list
+List Functions Only:
 * .insert(index, value) Add new value at specified index
-* .pop() returns last value and removes it from list.
-* .remove(value) remvoes first instance of value
-*. clear() clears the list
+
+### **Dicts**
+
+Dicts are unordered collections of multitpyes. Use
+Synatx dict[key_type, value_type]
+
+* **Declaration & Initialization**:
+
+```{Prometheus}
+  dict[str, int] prices;   
+  list[double, str] scores = [];  
+  list[str, double] prices = {"apple": 2.25, "pear": 3.5, "orange": 1.75};
+```
+
+Can do nums[idx] for specific value at key or assign a value to that key.
 
 ## **4\. Control Flow**
 
