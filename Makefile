@@ -1,5 +1,5 @@
 CXX = g++
-CFLAGS = -std=c++17 -Wall -Wextra -Werror -I include
+CXXFLAGS = -std=c++17 -Wall -Wextra -Werror -I include
 SRC_DIR = src
 BIN_DIR = bin
 
@@ -8,38 +8,42 @@ SOURCES = main.cc lexer.cc parser.cc interpreter.cc builtins.cc stdlib/math.cc s
 OBJECTS = $(SOURCES:%.cc=$(BIN_DIR)/%.o)
 
 ifeq ($(OS), Windows_NT)
-	CFLAGS += -static -static-libgcc -static-libstdc++
-	TARGET = prometheus.exe
-	TARGET_VIZ = prometheus_viz.exe
-    PREFIX = C:/ProgramData/prometheus
-    INSTALL_BIN = $(PREFIX)
-	PYTEST = venv/scripts/pytest
+    CXXFLAGS    += -static -static-libgcc -static-libstdc++
+    TARGET      := prometheus.exe
+    TARGET_VIZ  := prometheus_viz.exe
+    PREFIX      := C:/ProgramData/prometheus
+    INSTALL_BIN := $(PREFIX)
+    PYTEST      := venv/scripts/pytest
+    MKDIR       := mkdir -p
+    RM          := rm -rf
 else
-	TARGET = prometheus
-	TARGET_VIZ = prometheus_viz
-    PREFIX = /usr/local
-    INSTALL_BIN = $(PREFIX)/bin
-	PYTEST = venv/bin/pytest
+    TARGET      := prometheus
+    TARGET_VIZ  := prometheus_viz
+    PREFIX      := /usr/local
+    INSTALL_BIN := $(PREFIX)/bin
+    PYTEST      := venv/bin/pytest
+    MKDIR       := mkdir -p
+    RM          := rm -rf
 endif
 
-.PHONY: all clean debug visualize
+.PHONY: all clean debug visualize install uninstall test
 
 all: prometheus
 
 prometheus: $(BIN_DIR) $(OBJECTS)
-	$(CXX) -o $(TARGET) $(OBJECTS) $(CFLAGS) $(LDFLAGS)
+	$(CXX) -o $(TARGET) $(OBJECTS) $(CXXFLAGS) $(LDFLAGS)
 
 test: clean prometheus
 	$(PYTEST)
 
 # debug
-debug: CFLAGS += -DDEBUG
+debug: CXXFLAGS += -DDEBUG
 debug: clean prometheus
 
 # visualize
-visualize: CFLAGS += -DVISUALIZE
+visualize: CXXFLAGS += -DVISUALIZE
 visualize: $(BIN_DIR) $(OBJECTS) $(BIN_DIR)/dot_visitor.o
-	$(CXX) -o $(TARGET_VIZ) $(OBJECTS) $(BIN_DIR)/dot_visitor.o $(CFLAGS)
+	$(CXX) -o $(TARGET_VIZ) $(OBJECTS) $(BIN_DIR)/dot_visitor.o $(CXXFLAGS)
 
 
 install: $(TARGET)
@@ -59,21 +63,21 @@ endif
 uninstall:
 ifeq ($(OS), Windows_NT)
 	@echo "Removing Prometheus from $(PREFIX)..."
-	rm -rf $(PREFIX)
+	$(RM) $(PREFIX)
 	@echo "Note: You must manually remove $(PREFIX) from your PATH environment variable."
 else
 	@echo "Removing Prometheus from $(PREFIX)..."
-	rm -f $(INSTALL_BIN)/$(TARGET)
-	rm -rf $(PREFIX)/share/prometheus
+	$(RM) $(INSTALL_BIN)/$(TARGET)
+	$(RM) -rf $(PREFIX)/share/prometheus
 	@echo "Uninstall complete."
 endif
 
 $(BIN_DIR)/%.o: $(SRC_DIR)/%.cc
-	$(CXX) -c -o $@ $< $(CFLAGS)
+	$(CXX) -c -o $@ $< $(CXXFLAGS)
 
 $(BIN_DIR):
-	mkdir -p $(BIN_DIR)
-	mkdir -p $(BIN_DIR)/stdlib
+	$(MKDIR) $(BIN_DIR)
+	$(MKDIR) $(BIN_DIR)/stdlib
 
 clean:
-	rm -rf $(BIN_DIR) prometheus prometheus-viz
+	$(RM) $(BIN_DIR) $(TARGET) $(TARGET_VIZ)
