@@ -1,0 +1,16 @@
+# 03_nesting.prm
+
+int x = 100;
+int y = 50;
+
+if (x > 50) {
+    print("Outer if passed");
+    if (y == 50) {
+        int internal = 1;
+        print("Inner if passed");
+    } else {
+        print("Inner else error");
+    }
+} else {
+    print("Outer else error");
+}

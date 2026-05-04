@@ -1,0 +1,26 @@
+# test_types.prm
+double pi = 3.14159;
+str name = "Hello World";
+bool isActive = true;
+
+# Double comparison
+if (pi > 3.0) {
+    print("Double comparison works");
+}
+
+# Boolean evaluation
+if (isActive) {
+    print("Bool identity works");
+}
+
+# String equality (assuming C-style or operator overloading)
+if (name == "Hello World") {
+    print("String comparison works");
+} else {
+    print("String comparison failed");
+}
+
+# Mixed types (Int vs Double)
+if (10 > 9.5) {
+    print("Cross-type comparison works");
+}

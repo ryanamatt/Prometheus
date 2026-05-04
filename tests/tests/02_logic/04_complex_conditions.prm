@@ -1,0 +1,26 @@
+# 04_complex_conditions.prm
+
+int age = 25;
+bool hasLicense = false;
+double balance = 1000.50;
+
+# Complex AND/OR
+if (age >= 18 && hasLicense) {
+    print("Authorized to drive");
+} elif (age >= 18 && !hasLicense) {
+    print("Adult, but no license"); # hit here
+} else {
+    print("Minor");
+}
+
+# Short-circuiting test
+# If the first part is true, the second shouldn't crash if it's invalid
+if (true || (5 / 1 == 0)) {
+    print("Short-circuit OR works");
+}
+
+if (false && (5 / 1 == 0)) {
+    # Should not enter
+} else {
+    print("Short-circuit AND works");
+}

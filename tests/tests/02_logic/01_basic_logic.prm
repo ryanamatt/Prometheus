@@ -1,0 +1,23 @@
+# 01_basic_logic.prm
+
+int a = 10;
+int b = 20;
+
+# Test simple if/else
+if (a < b) {
+    print("Success: 10 < 20");
+} else {
+    print("Failure: 10 < 20 logic error");
+}
+
+# Test elif chain
+int score = 75;
+if (score >= 90) {
+    print("Grade: A");
+} elif (score >= 80) {
+    print("Grade: B");
+} elif (score >= 70) {
+    print("Grade: C"); # Should hit here
+} else {
+    print("Grade: F");
+}
