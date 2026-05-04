@@ -11,6 +11,7 @@
     { "include": "#builtin" },
     { "include": "#operator" },
     { "include": "#list-method" },
+    { "include": "#dict-method" },
     { "include": "#function-call" },
     { "include": "#identifier" },
     { "include": "#delimiter" }
@@ -44,7 +45,7 @@
     },
     "builtin": {
       "name": "support.function.builtin.prometheus",
-      "match": "\\b(print|input|range|type)\\b(?=\\s*\\()"
+      "match": "\\b(print|input|range|type|len)\\b(?=\\s*\\()"
     },
     "operator": {
       "name": "keyword.operator.prometheus",
@@ -53,6 +54,10 @@
     "list-method": {
       "name": "support.function.prometheus",
       "match": "\\.(append|len|insert|pop|remove|clear)\\b"
+    },
+    "dict-method": {
+      "name": "support.function.prometheus",
+      "match": "\\.(append|len|pop|remove|clear)\\b"
     },
     "function-call": {
       "name": "entity.name.function.prometheus",
