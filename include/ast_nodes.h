@@ -288,16 +288,6 @@ public:
     PrometheusValue accept(Visitor& v) override { return v.visit(this); }
 };
 
-// /** `name.len()` — evaluates to int */
-// class ListLengthNode : public ASTNode {
-// public:
-//     std::string name;
-
-//     explicit ListLengthNode(std::string name) : name(std::move(name)) {}
-
-//     PrometheusValue accept(Visitor& v) override { return v.visit(this); }
-// };
-
 /**`name.insert(i, x)` -inserts x at index i */
 class ListInsertNode : public ASTNode {
 public:

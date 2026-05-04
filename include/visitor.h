@@ -27,7 +27,6 @@ class CallNode;
 class ListLiteralNode;
 class ListDeclNode;
 
-// class ListLengthNode;
 class ListInsertNode;
 
 class DictLiteralNode;
@@ -83,7 +82,6 @@ public:
 
     virtual PrometheusValue visit(ListLiteralNode* node) = 0;
     virtual PrometheusValue visit(ListDeclNode* node) = 0;
-    // virtual PrometheusValue visit(ListLengthNode* node) = 0;
     virtual PrometheusValue visit(ListInsertNode* node) = 0;
 
     virtual PrometheusValue visit(DictLiteralNode* node) = 0;

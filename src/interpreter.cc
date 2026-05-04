@@ -777,18 +777,6 @@ PrometheusValue Interpreter::visit(ListDeclNode* n) {
 }
 
 // ----------------------------------------------------------------------------
-// List length
-// ----------------------------------------------------------------------------
-
-// PrometheusValue Interpreter::visit(ListLengthNode* n) {
-//     PrometheusValue var = get_var(n->name);
-//     if (!std::holds_alternative<PrometheusListPtr>(var))
-//         throw TypeException("'" + n->name + "' is not a list");
-
-//     return static_cast<int>(std::get<PrometheusListPtr>(var)->elements.size());
-// }
-
-// ----------------------------------------------------------------------------
 // List insert
 // ----------------------------------------------------------------------------
 
