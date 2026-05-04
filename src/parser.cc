@@ -176,16 +176,20 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
                 if (current_token().get_token() != TokenType::LPAREN)
                     throw MissingBraceException('(', current_token().get_line());
                 eat(TokenType::LPAREN);
+
+                std::vector<std::unique_ptr<ASTNode>> args;
+                if (current_token().get_token() != TokenType::RPAREN)
+                    args.push_back(parse_expression());
+
                 if (current_token().get_token() != TokenType::RPAREN)
                     throw MissingBraceException('(', id.get_line());
-
                 eat(TokenType::RPAREN);
                 if (current_token().get_token() != TokenType::SEMICOLON)
                     throw MissingSemicolonException("pop()", current_token().get_line());
                 int line = current_token().get_line();
                 eat(TokenType::SEMICOLON);
 
-                return std::make_unique<ListPopNode>(id.get_value(), line);
+                return std::make_unique<GenCollectionPopNode>(id.get_value(), std::move(args), line);
             }
 
             if (method == "remove") {
@@ -1054,10 +1058,15 @@ std::unique_ptr<ASTNode> Parser::parse_term() {
                 if (current_token().get_token() != TokenType::LPAREN)
                     throw MissingBraceException('(', id.get_line());
                 eat(TokenType::LPAREN);
+
+                std::vector<std::unique_ptr<ASTNode>> args;
+                if (current_token().get_token() != TokenType::RPAREN)
+                    args.push_back(parse_expression());
+
                 if (current_token().get_token() != TokenType::RPAREN)
                     throw MissingBraceException('(', id.get_line());
                 eat(TokenType::RPAREN);
-                return std::make_unique<ListPopNode>(id.get_value(), id.get_line());
+                return std::make_unique<GenCollectionPopNode>(id.get_value(), std::move(args), id.get_line());
             }
 
             throw ParseException(

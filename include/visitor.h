@@ -29,7 +29,7 @@ class ListDeclNode;
 
 class ListLengthNode;
 class ListInsertNode;
-class ListPopNode;
+// class ListPopNode;
 
 class DictLiteralNode;
 class DictDeclNode;
@@ -38,6 +38,7 @@ class GenCollectionIndexNode;
 class GenCollectionAssignNode;
 class GenCollectionAppendNode;
 class GenCollectionRemoveNode;
+class GenCollectionPopNode;
 class GenCollectionClearNode;
 
 class ImportNode;
@@ -88,11 +89,12 @@ public:
     virtual PrometheusValue visit(ListDeclNode* node) = 0;
     virtual PrometheusValue visit(ListLengthNode* node) = 0;
     virtual PrometheusValue visit(ListInsertNode* node) = 0;
-    virtual PrometheusValue visit(ListPopNode* node) = 0;
+    // virtual PrometheusValue visit(ListPopNode* node) = 0;
 
     virtual PrometheusValue visit(DictLiteralNode* node) = 0;
     virtual PrometheusValue visit(DictDeclNode* node) = 0;
     virtual PrometheusValue visit(GenCollectionRemoveNode* node) = 0;
+    virtual PrometheusValue visit(GenCollectionPopNode* node) = 0;
     virtual PrometheusValue visit(GenCollectionClearNode* node) = 0;
 
     virtual PrometheusValue visit(ImportNode* node) = 0;

@@ -809,19 +809,30 @@ PrometheusValue Interpreter::visit(ListInsertNode* n) {
 // List Pop
 // ----------------------------------------------------------------------------
 
-PrometheusValue Interpreter::visit(ListPopNode* n) {
-    PrometheusValue var_name = get_var(n->name);
-    if (!std::holds_alternative<PrometheusListPtr>(var_name))
-        throw TypeException("'" + n->name + "' is not a list");
-    auto lst = std::get<PrometheusListPtr>(var_name);
+// PrometheusValue Interpreter::visit(ListPopNode* n) {
+//     PrometheusValue var_name = get_var(n->name);
+//     if (!std::holds_alternative<PrometheusListPtr>(var_name))
+//         throw TypeException("'" + n->name + "' is not a list");
+//     auto lst = std::get<PrometheusListPtr>(var_name);
 
-    if (lst->elements.empty())
-        return std::monostate{};
+//     if (lst->elements.empty())
+//         return std::monostate{};
 
-    PrometheusValue lastValue = lst->elements.back();
-    lst->elements.pop_back();
-    return lastValue;
-}
+//     // Take 1 Arg which is the index to pop at
+//     if (!n->args.empty()) {
+//         if (n->args.size() > 1)
+//             throw ArgumentCountException("int", 1, (int)n->args.size());
+//         int idx = get_int(visit(n->args[0].get()));
+//         auto popped_value = lst->elements[idx];
+//         lst->elements.erase(lst->elements.begin() + idx);
+//         return popped_value;
+//     }
+
+//     // Default Case No arguments pop last value
+//     PrometheusValue lastValue = lst->elements.back();
+//     lst->elements.pop_back();
+//     return lastValue;
+// }
 
 // ----------------------------------------------------------------------------
 // Dict literal
@@ -1011,6 +1022,58 @@ PrometheusValue Interpreter::visit(GenCollectionRemoveNode* n) {
     }
 
     throw TypeException("'" + n->name + " does not have remove() function for type.");
+}
+
+PrometheusValue Interpreter::visit(GenCollectionPopNode* n) {
+    PrometheusValue var_name = get_var(n->name);
+
+    if (std::holds_alternative<PrometheusListPtr>(var_name)) {
+        auto lst = std::get<PrometheusListPtr>(var_name);
+
+        if (lst->elements.empty())
+            return std::monostate{};
+
+        // Take 1 Arg which is the index to pop at
+        if (!n->args.empty()) {
+            if (n->args.size() > 1)
+                throw ArgumentCountException("list.pop()", 1, (int)n->args.size(), n->token_line);
+            int idx = get_int(visit(n->args[0].get()));
+            auto popped_value = lst->elements[idx];
+            lst->elements.erase(lst->elements.begin() + idx);
+            return popped_value;
+        }
+
+        // Default Case No arguments pop last value
+        PrometheusValue lastValue = lst->elements.back();
+        lst->elements.pop_back();
+        return lastValue;
+    }
+
+    if (std::holds_alternative<PrometheusDictPtr>(var_name)) {
+        auto dict = std::get<PrometheusDictPtr>(var_name);
+
+        if (dict->dict_elements.empty())
+            return std::monostate{};
+
+        // Take 1 Arg which is the index to pop at
+        if (!n->args.empty()) {
+            if (n->args.size() > 1)
+                throw ArgumentCountException("dict.pop()", 1, (int)n->args.size(), n->token_line);
+            auto idx = visit(n->args[0].get());
+            auto co_idx = coerce_to_declared(dict->key_type, "dict<index>", idx, n->token_line);
+            auto it = dict->dict_elements.find(co_idx);
+            if (it != dict->dict_elements.end()) {
+                auto value = it->second;
+                dict->dict_elements.erase(it);
+                return value;
+            }
+            return std::monostate{}; // Didn't find value
+        }
+        // Dict.pop() requires at least one argument since it is not ordered
+        throw ArgumentCountException("dict.pop()", 1, (int)n->args.size(), n->token_line);
+    }
+
+    throw TypeException("'" + n->name + "' is not popable", n->token_line);
 }
 
 PrometheusValue Interpreter::visit(GenCollectionClearNode* n) {
