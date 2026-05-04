@@ -325,19 +325,6 @@ public:
 };
 
 /**`name.remove(val)` - Removes the first occurence of the value*/
-class ListRemoveNode : public ASTNode {
-public:
-    std::string name;
-    std::unique_ptr<ASTNode> value;
-    int line;
-
-    explicit ListRemoveNode(std::string name, std::unique_ptr<ASTNode> value, int line)
-        : name(std::move(name)), value(std::move(value)), line(line) {}
-
-    PrometheusValue accept(Visitor& v) override { return v.visit(this); }
-};
-
-/**`name.remove(val)` - Removes the first occurence of the value*/
 class ListClearNode : public ASTNode {
 public:
     std::string name;
@@ -421,6 +408,19 @@ public:
     int token_line;
 
     GenCollectionAppendNode(std::string name, std::unique_ptr<ASTNode> value, int token_line)
+        : name(std::move(name)), value(std::move(value)), token_line(token_line) {}
+
+    PrometheusValue accept(Visitor& v) override { return v.visit(this); }
+};
+
+/**`name.remove(val)` - Removes the first occurence of the value*/
+class GenCollectionRemoveNode : public ASTNode {
+public:
+    std::string name;
+    std::unique_ptr<ASTNode> value;
+    int token_line;
+
+    explicit GenCollectionRemoveNode(std::string name, std::unique_ptr<ASTNode> value, int token_line)
         : name(std::move(name)), value(std::move(value)), token_line(token_line) {}
 
     PrometheusValue accept(Visitor& v) override { return v.visit(this); }

@@ -824,23 +824,6 @@ PrometheusValue Interpreter::visit(ListPopNode* n) {
 }
 
 // ----------------------------------------------------------------------------
-// List Remove
-// ----------------------------------------------------------------------------
-
-PrometheusValue Interpreter::visit(ListRemoveNode* n) {
-    PrometheusValue var_name = get_var(n->name);
-    if (!std::holds_alternative<PrometheusListPtr>(var_name))
-        throw TypeException("'" + n->name + "' is not a list");
-    auto lst = std::get<PrometheusListPtr>(var_name);
-
-    PrometheusValue value = visit(n->value.get());
-    auto it = std::find(lst->elements.begin(), lst->elements.end(), value);
-    if (it != lst->elements.end())
-        lst->elements.erase(it);
-    return std::monostate{};
-}
-
-// ----------------------------------------------------------------------------
 // List Clear
 // ----------------------------------------------------------------------------
 
@@ -1014,6 +997,34 @@ PrometheusValue Interpreter::visit(GenCollectionAppendNode* n) {
     }
 
     throw TypeException("'" + n->name + "' is not appendable", n->token_line);
+}
+
+PrometheusValue Interpreter::visit(GenCollectionRemoveNode* n) {
+    PrometheusValue var_name = get_var(n->name);
+
+    // List Case Remove first instance of value
+    if (std::holds_alternative<PrometheusListPtr>(var_name)) {
+        auto lst = std::get<PrometheusListPtr>(var_name);
+
+        PrometheusValue value = visit(n->value.get());
+        auto it = std::find(lst->elements.begin(), lst->elements.end(), value);
+        if (it != lst->elements.end())
+            lst->elements.erase(it);
+        return std::monostate{};
+    }
+
+    // Dict Case Remove instance of key
+    if (std::holds_alternative<PrometheusDictPtr>(var_name)) {
+        auto dict = std::get<PrometheusDictPtr>(var_name);
+
+        PrometheusValue value = visit(n->value.get());
+        auto it = dict->dict_elements.find(value);
+        if (it != dict->dict_elements.end())
+            dict->dict_elements.erase(it);
+        return std::monostate{};
+    }
+
+    throw TypeException("'" + n->name + " does not have remove() function for type.");
 }
 
 // ----------------------------------------------------------------------------

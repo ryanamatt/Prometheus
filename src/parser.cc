@@ -203,7 +203,7 @@ std::unique_ptr<ASTNode> Parser::parse_statement() {
                 int line = current_token().get_line();
                 eat(TokenType::SEMICOLON);
 
-                return std::make_unique<ListRemoveNode>(id.get_value(), std::move(value), line);
+                return std::make_unique<GenCollectionRemoveNode>(id.get_value(), std::move(value), line);
             }
 
             if (method == "clear") {
