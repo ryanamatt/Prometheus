@@ -806,35 +806,6 @@ PrometheusValue Interpreter::visit(ListInsertNode* n) {
 }
 
 // ----------------------------------------------------------------------------
-// List Pop
-// ----------------------------------------------------------------------------
-
-// PrometheusValue Interpreter::visit(ListPopNode* n) {
-//     PrometheusValue var_name = get_var(n->name);
-//     if (!std::holds_alternative<PrometheusListPtr>(var_name))
-//         throw TypeException("'" + n->name + "' is not a list");
-//     auto lst = std::get<PrometheusListPtr>(var_name);
-
-//     if (lst->elements.empty())
-//         return std::monostate{};
-
-//     // Take 1 Arg which is the index to pop at
-//     if (!n->args.empty()) {
-//         if (n->args.size() > 1)
-//             throw ArgumentCountException("int", 1, (int)n->args.size());
-//         int idx = get_int(visit(n->args[0].get()));
-//         auto popped_value = lst->elements[idx];
-//         lst->elements.erase(lst->elements.begin() + idx);
-//         return popped_value;
-//     }
-
-//     // Default Case No arguments pop last value
-//     PrometheusValue lastValue = lst->elements.back();
-//     lst->elements.pop_back();
-//     return lastValue;
-// }
-
-// ----------------------------------------------------------------------------
 // Dict literal
 // ----------------------------------------------------------------------------
 
