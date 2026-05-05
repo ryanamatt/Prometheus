@@ -659,10 +659,9 @@ PrometheusValue Interpreter::visit(FunctionDeclNode* n) {
             }
         }
 
-        if (types_match) {
+        if (types_match)
             throw std::runtime_error("Function '" + n->name + "' with parameter types (" + 
                 get_params_type_string(n->params) + ") is already defined.");
-        }
     }
 
     overloads.push_back(n);
