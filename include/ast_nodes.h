@@ -251,9 +251,14 @@ class CallNode : public ASTNode {
 public:
     std::string name;
     std::vector<std::unique_ptr<ASTNode>> args;
+    std::string exp_return_type;
 
     CallNode(std::string name, std::vector<std::unique_ptr<ASTNode>> args)
         : name(std::move(name)), args(std::move(args)) {}
+
+    CallNode(std::string name, std::vector<std::unique_ptr<ASTNode>> args, 
+        std::string exp_return_type)
+        : name(std::move(name)), args(std::move(args)), exp_return_type(std::move(exp_return_type)) {}
 
     PrometheusValue accept(Visitor& v) override { return v.visit(this); }
 };

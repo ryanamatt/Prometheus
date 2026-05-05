@@ -260,6 +260,46 @@ static std::string type_name(const PrometheusValue& v) {
     return "None";
 }
 
+// static PrometheusValue from_type_name(const std::string& type_str) {
+//     if (type_str == "int") return 0;
+//     if (type_str == "double") return 0.0;
+//     if (type_str == "bool") return false;
+//     if (type_str == "str") return std::string("");
+    
+//     // Handle list[element_type]
+//     if (type_str.find("list[") == 0) {
+//         auto start = type_str.find('[') + 1;
+//         auto end = type_str.find_last_of(']');
+//         std::string elem_type = (start < end) ? type_str.substr(start, end - start) : "?";
+        
+//         auto lst = std::make_shared<PrometheusList>();
+//         lst->element_type = elem_type;
+//         return lst;
+//     }
+    
+//     // Handle dict[key_type, value_type]
+//     if (type_str.find("dict[") == 0) {
+//         auto start = type_str.find('[') + 1;
+//         auto comma = type_str.find(',');
+//         auto end = type_str.find_last_of(']');
+        
+//         std::string k_type = "?";
+//         std::string v_type = "?";
+        
+//         if (comma != std::string::npos) {
+//             k_type = type_str.substr(start, comma - start);
+//             v_type = type_str.substr(comma + 2, end - (comma + 2)); // +2 to skip comma and space
+//         }
+        
+//         auto dict = std::make_shared<PrometheusDict>();
+//         dict->key_type = k_type;
+//         dict->value_type = v_type;
+//         return dict;
+//     }
+
+//     return std::monostate{}; // Represents "None"
+// }
+
 static double get_double(const PrometheusValue& v, int line = 0) {
     if (auto* i = std::get_if<int>(&v))    return static_cast<double>(*i);
     if (auto* d = std::get_if<double>(&v)) return *d;
@@ -328,6 +368,15 @@ static std::string value_to_string(const PrometheusValue& value) {
         return out + "}";
     }
     return "None";
+}
+
+std::string Interpreter::get_params_type_string(const std::vector<Parameter>& params) {
+    std::string result;
+    for (size_t i = 0; i < params.size(); ++i) {
+        result += params[i].type;
+        if (i < params.size() - 1) result += ", ";
+    }
+    return result;
 }
 
 static PrometheusValue coerce_to_declared(const std::string& decl_type,
@@ -633,9 +682,32 @@ PrometheusValue Interpreter::visit(ForInNode* n) {
 // ----------------------------------------------------------------------------
 
 PrometheusValue Interpreter::visit(FunctionDeclNode* n) {
-    if (functions.count(n->name))
-        throw RuntimeException("Function '" + n->name + "' is already defined");
-    functions[n->name] = n;
+    auto& overloads = functions[n->name];
+
+    for (auto* existing : overloads) {
+        // If the number of parameters is different, it's a valid overload
+        if (existing->params.size() != n->params.size()) {
+            continue;
+        }
+
+        // If the counts are the same, check if the types are identical
+        bool types_match = true;
+        for (size_t i = 0; i < n->params.size(); ++i) {
+            if (existing->params[i].type != n->params[i].type) {
+                types_match = false;
+                break;
+            }
+        }
+
+        if (existing->return_type != n->return_type)
+            types_match = false;
+
+        if (types_match)
+            throw std::runtime_error("Function '" + n->name + "' with parameter types (" + 
+                get_params_type_string(n->params) + ") is already defined.");
+    }
+
+    overloads.push_back(n);
     return std::monostate{};
 }
 
@@ -654,7 +726,7 @@ PrometheusValue Interpreter::visit(ReturnNode* n) {
 
 PrometheusValue Interpreter::visit(CallNode* n) {
 
-    // Built-in type conversions --------------------------------------------
+    // --- Built-in type conversions ---
     if (n->name == "int") {
         if (n->args.size() != 1)
             throw ArgumentCountException("int", 1, (int)n->args.size());
@@ -689,7 +761,7 @@ PrometheusValue Interpreter::visit(CallNode* n) {
         return get_bool(visit(n->args[0].get()));
     }
 
-    // Native (C++) functions -----------------------------------------------
+    // --- Native (C++) functions ---
     auto native_it = native_functions.find(n->name);
     if (native_it != native_functions.end()) {
         std::vector<PrometheusValue> arg_vals;
@@ -698,36 +770,80 @@ PrometheusValue Interpreter::visit(CallNode* n) {
         return native_it->second(arg_vals, 1);
     }
 
-    // User-defined functions -----------------------------------------------
-    if (!functions.count(n->name))
-        throw UndefinedFunctionException(n->name);
+    // --- User-defined functions ---
 
-    FunctionDeclNode* func_node = functions[n->name];
-    size_t total_params  = func_node->params.size();
-    size_t provided_args = n->args.size();
+    if (functions.find(n->name) == functions.end())
+        throw std::runtime_error("Undefined function: " + n->name);
 
-    size_t min_args = 0;
-    for (const auto& p : func_node->params) {
-        if (p.default_val == nullptr) min_args++;
-        else break;
-    }
-
-    if (provided_args < min_args || provided_args > total_params)
-        throw ArgumentCountException(n->name, (int)total_params, (int)provided_args);
-
-    // Evaluate arguments in caller's scope
+    // --- Evaluate arguments in caller's scope ---
     std::vector<PrometheusValue> arg_values;
     for (auto& arg : n->args)
         arg_values.push_back(visit(arg.get()));
 
+    auto& overloads = functions[n->name];
+    FunctionDeclNode* bestMatch = nullptr;
+    std::vector<PrometheusValue> final_coerced_args;
+
+    // --- PASS 1: Exact Match (No Coercion) ---
+    for (auto* decl : overloads) {
+        if (decl->params.size() == arg_values.size()) {
+            bool exact_match = true;
+            for (size_t i = 0; i < arg_values.size(); i++) {
+                // Check if types are identical using type_name helper
+                if (type_name(arg_values[i]) != decl->params[i].type) {
+                    exact_match = false;
+                    break;
+                }
+            }
+
+            if (decl->return_type != n->exp_return_type)
+                exact_match = false;
+
+            if (exact_match) {
+                bestMatch = decl;
+                final_coerced_args = arg_values; 
+                break;
+            }
+        }
+    }
+
+    // --- PASS 2: Coercion Match (Fallback) ---
+    if (!bestMatch) {
+        for (auto* decl : overloads) {
+            if (decl->params.size() == arg_values.size()) {
+                bool types_match = true;
+                std::vector<PrometheusValue> coerced_args;
+                try {
+                    for (size_t i = 0; i < arg_values.size(); i++) {
+                        coerced_args.push_back(coerce_to_declared(decl->params[i].type, decl->params[i].name, arg_values[i]));
+                    }
+
+                    if (decl->return_type != n->exp_return_type)
+                        types_match = true;
+
+                } catch (...) { types_match = false; }
+
+                if (types_match) {
+                    bestMatch = decl;
+                    final_coerced_args = std::move(coerced_args);
+                    break;
+                }
+            }
+        }
+    }
+
+    if (!bestMatch) {
+        throw std::runtime_error("No overload for " + n->name + " matches these argument types.");
+    }
+
     // Build a local interpreter for the function body
-    Interpreter local_interp(func_node->body);
+    Interpreter local_interp(bestMatch->body);
     local_interp.functions       = functions;
     local_interp.native_functions = native_functions;
 
-    for (size_t i = 0; i < total_params; ++i) {
-        const auto& param = func_node->params[i];
-        PrometheusValue final_val = (i < provided_args)
+    for (size_t i = 0; i < arg_values.size(); ++i) {
+        const auto& param = bestMatch->params[i];
+        PrometheusValue final_val = (i < n->args.size())
             ? coerce_to_declared(param.type, param.name, arg_values[i])
             : coerce_to_declared(param.type, param.name,
                                  visit(param.default_val.get()));
@@ -736,13 +852,13 @@ PrometheusValue Interpreter::visit(CallNode* n) {
 
     PrometheusValue result = std::monostate{};
     try {
-        for (auto& stmt : func_node->body)
+        for (auto& stmt : bestMatch->body)
             local_interp.visit(stmt.get());
     } catch (const ReturnException& e) {
         result = e.value;
     }
 
-    return coerce_to_declared(func_node->return_type, "return", result);
+    return coerce_to_declared(bestMatch->return_type, "return", result);
 }
 
 // ----------------------------------------------------------------------------
