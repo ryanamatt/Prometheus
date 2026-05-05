@@ -260,6 +260,46 @@ static std::string type_name(const PrometheusValue& v) {
     return "None";
 }
 
+// static PrometheusValue from_type_name(const std::string& type_str) {
+//     if (type_str == "int") return 0;
+//     if (type_str == "double") return 0.0;
+//     if (type_str == "bool") return false;
+//     if (type_str == "str") return std::string("");
+    
+//     // Handle list[element_type]
+//     if (type_str.find("list[") == 0) {
+//         auto start = type_str.find('[') + 1;
+//         auto end = type_str.find_last_of(']');
+//         std::string elem_type = (start < end) ? type_str.substr(start, end - start) : "?";
+        
+//         auto lst = std::make_shared<PrometheusList>();
+//         lst->element_type = elem_type;
+//         return lst;
+//     }
+    
+//     // Handle dict[key_type, value_type]
+//     if (type_str.find("dict[") == 0) {
+//         auto start = type_str.find('[') + 1;
+//         auto comma = type_str.find(',');
+//         auto end = type_str.find_last_of(']');
+        
+//         std::string k_type = "?";
+//         std::string v_type = "?";
+        
+//         if (comma != std::string::npos) {
+//             k_type = type_str.substr(start, comma - start);
+//             v_type = type_str.substr(comma + 2, end - (comma + 2)); // +2 to skip comma and space
+//         }
+        
+//         auto dict = std::make_shared<PrometheusDict>();
+//         dict->key_type = k_type;
+//         dict->value_type = v_type;
+//         return dict;
+//     }
+
+//     return std::monostate{}; // Represents "None"
+// }
+
 static double get_double(const PrometheusValue& v, int line = 0) {
     if (auto* i = std::get_if<int>(&v))    return static_cast<double>(*i);
     if (auto* d = std::get_if<double>(&v)) return *d;
@@ -659,6 +699,9 @@ PrometheusValue Interpreter::visit(FunctionDeclNode* n) {
             }
         }
 
+        if (existing->return_type != n->return_type)
+            types_match = false;
+
         if (types_match)
             throw std::runtime_error("Function '" + n->name + "' with parameter types (" + 
                 get_params_type_string(n->params) + ") is already defined.");
@@ -746,12 +789,16 @@ PrometheusValue Interpreter::visit(CallNode* n) {
         if (decl->params.size() == arg_values.size()) {
             bool exact_match = true;
             for (size_t i = 0; i < arg_values.size(); i++) {
-                // Check if types are identical using your type_name helper
+                // Check if types are identical using type_name helper
                 if (type_name(arg_values[i]) != decl->params[i].type) {
                     exact_match = false;
                     break;
                 }
             }
+
+            if (decl->return_type != n->exp_return_type)
+                exact_match = false;
+
             if (exact_match) {
                 bestMatch = decl;
                 final_coerced_args = arg_values; 
@@ -770,6 +817,10 @@ PrometheusValue Interpreter::visit(CallNode* n) {
                     for (size_t i = 0; i < arg_values.size(); i++) {
                         coerced_args.push_back(coerce_to_declared(decl->params[i].type, decl->params[i].name, arg_values[i]));
                     }
+
+                    if (decl->return_type != n->exp_return_type)
+                        types_match = true;
+
                 } catch (...) { types_match = false; }
 
                 if (types_match) {
