@@ -46,7 +46,7 @@ private:
     std::vector<std::unordered_map<std::string, PrometheusValue>> scope_stack;
 
     /** Function table — functions are always global. */
-    std::unordered_map<std::string, FunctionDeclNode*> functions;
+    std::unordered_map<std::string, std::vector<FunctionDeclNode*>> functions;
 
     /** Native (C++) function table populated by register_math_functions(). */
     std::unordered_map<std::string, NativeFunction> native_functions;
@@ -109,6 +109,8 @@ private:
     void            set_var(const std::string& name, PrometheusValue value);
     void            declare_var(const std::string& name, PrometheusValue value);
     bool            has_var(const std::string& name) const;
+
+    std::string get_params_type_string(const std::vector<Parameter>& params);
 
 public:
     explicit Interpreter(
