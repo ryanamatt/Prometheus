@@ -273,10 +273,7 @@ std::unique_ptr<ASTNode> Parser::parse_declaration() {
     if (current_token().get_token() == TokenType::ASSIGN) {
             eat(TokenType::ASSIGN);
             value_node = parse_expression();
-
-            if (CallNode* call = dynamic_cast<CallNode*>(value_node.get())) {
-                call->exp_return_type = type_token.get_value();
-            }
+            
     } else {
         // Provide a default value of 0 if no assignment exists
         if (type_token.get_token() == TokenType::STR)

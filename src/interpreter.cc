@@ -699,9 +699,6 @@ PrometheusValue Interpreter::visit(FunctionDeclNode* n) {
             }
         }
 
-        if (existing->return_type != n->return_type)
-            types_match = false;
-
         if (types_match)
             throw std::runtime_error("Function '" + n->name + "' with parameter types (" + 
                 get_params_type_string(n->params) + ") is already defined.");
@@ -796,9 +793,6 @@ PrometheusValue Interpreter::visit(CallNode* n) {
                 }
             }
 
-            if (decl->return_type != n->exp_return_type)
-                exact_match = false;
-
             if (exact_match) {
                 bestMatch = decl;
                 final_coerced_args = arg_values; 
@@ -817,9 +811,6 @@ PrometheusValue Interpreter::visit(CallNode* n) {
                     for (size_t i = 0; i < arg_values.size(); i++) {
                         coerced_args.push_back(coerce_to_declared(decl->params[i].type, decl->params[i].name, arg_values[i]));
                     }
-
-                    if (decl->return_type != n->exp_return_type)
-                        types_match = true;
 
                 } catch (...) { types_match = false; }
 
