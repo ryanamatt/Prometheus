@@ -642,20 +642,7 @@ PrometheusValue Interpreter::visit(ForInNode* n) {
 // ----------------------------------------------------------------------------
 
 PrometheusValue Interpreter::visit(FunctionDeclNode* n) {
-    // if (functions.count(n->name))
-    //     throw RuntimeException("Function '" + n->name + "' is already defined");
-    // functions[n->name] = n;
-    // return std::monostate{};
     auto& overloads = functions[n->name];
-
-    // for (auto* existing : overloads) {
-    //     if (existing->params.size() == n->params.size()) {
-    //         throw std::runtime_error("Function " + n->name + " with this signature already exists.");
-    //     }
-    // }
-
-    // overloads.push_back(n);
-    // return std::monostate{};
 
     for (auto* existing : overloads) {
         // If the number of parameters is different, it's a valid overload
@@ -697,7 +684,7 @@ PrometheusValue Interpreter::visit(ReturnNode* n) {
 
 PrometheusValue Interpreter::visit(CallNode* n) {
 
-    // Built-in type conversions --------------------------------------------
+    // --- Built-in type conversions ---
     if (n->name == "int") {
         if (n->args.size() != 1)
             throw ArgumentCountException("int", 1, (int)n->args.size());
@@ -732,7 +719,7 @@ PrometheusValue Interpreter::visit(CallNode* n) {
         return get_bool(visit(n->args[0].get()));
     }
 
-    // Native (C++) functions -----------------------------------------------
+    // --- Native (C++) functions ---
     auto native_it = native_functions.find(n->name);
     if (native_it != native_functions.end()) {
         std::vector<PrometheusValue> arg_vals;
@@ -741,22 +728,7 @@ PrometheusValue Interpreter::visit(CallNode* n) {
         return native_it->second(arg_vals, 1);
     }
 
-    // User-defined functions -----------------------------------------------
-    // if (!functions.count(n->name))
-    //     throw UndefinedFunctionException(n->name);
-
-    // FunctionDeclNode* func_node = functions[n->name];
-    // size_t total_params  = func_node->params.size();
-    // size_t provided_args = n->args.size();
-
-    // size_t min_args = 0;
-    // for (const auto& p : func_node->params) {
-    //     if (p.default_val == nullptr) min_args++;
-    //     else break;
-    // }
-
-    // if (provided_args < min_args || provided_args > total_params)
-    //     throw ArgumentCountException(n->name, (int)total_params, (int)provided_args);
+    // --- User-defined functions ---
 
     if (functions.find(n->name) == functions.end())
         throw std::runtime_error("Undefined function: " + n->name);
