@@ -205,6 +205,25 @@ public:
     PrometheusValue accept(Visitor& v) override { return v.visit(this); }
 };
 
+class ForInDictNode : public ASTNode {
+public:
+    std::string first_var_type;
+    std::string first_var_name;
+    std::string second_var_type;
+    std::string second_var_name;
+    std::unique_ptr<ASTNode> dict_expr;
+    std::vector<std::unique_ptr<ASTNode>> body;
+
+    ForInDictNode(std::string first_var_type, std::string first_var_name, std::string second_var_type,
+    std::string second_var_name, std::unique_ptr<ASTNode> dict_expr,
+    std::vector<std::unique_ptr<ASTNode>> body)
+    : first_var_type(std::move(first_var_type)), first_var_name(std::move(first_var_name)),
+    second_var_type(std::move(second_var_type)), second_var_name(std::move(second_var_name)),
+    dict_expr(std::move(dict_expr)), body(std::move(body)) {}
+
+    PrometheusValue accept(Visitor& v) override { return v.visit(this); }
+};
+
 // ---------------------------------------------------------------------------
 // Functions
 // ---------------------------------------------------------------------------
