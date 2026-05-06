@@ -19,6 +19,7 @@ class IfNode;
 class WhileNode;
 class ForNode;
 class ForInNode;
+class ForInDictNode;
 
 class FunctionDeclNode;
 class ReturnNode;
@@ -75,6 +76,7 @@ public:
     virtual PrometheusValue visit(WhileNode* node) = 0;
     virtual PrometheusValue visit(ForNode* node) = 0;
     virtual PrometheusValue visit(ForInNode* node) = 0;
+    virtual PrometheusValue visit(ForInDictNode* node) = 0;
 
     virtual PrometheusValue visit(FunctionDeclNode* node) = 0;
     virtual PrometheusValue visit(ReturnNode* node) = 0;

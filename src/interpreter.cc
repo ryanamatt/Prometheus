@@ -665,12 +665,36 @@ PrometheusValue Interpreter::visit(ForInNode* n) {
     PrometheusValue iterable = visit(n->list_expr.get());
     if (!std::holds_alternative<PrometheusListPtr>(iterable))
         throw TypeException(
-            "for-in loop requires a list, but got '" + type_name(iterable) + "'");
+            "for-in loop requires a list or dict, but got '" + type_name(iterable) + "'");
 
     auto lst = std::get<PrometheusListPtr>(iterable);
     for (const PrometheusValue& elem : lst->elements) {
         push_scope();
         declare_var(n->var_name, coerce_to_declared(n->var_type, n->var_name, elem));
+        for (auto& stmt : n->body) visit(stmt.get());
+        pop_scope();
+    }
+    return std::monostate{};
+}
+
+// ----------------------------------------------------------------------------
+// For-in-Dict (range-based)
+// 
+
+PrometheusValue Interpreter::visit(ForInDictNode* n) {
+    PrometheusValue iterable = visit(n->dict_expr.get());
+    if (!std::holds_alternative<PrometheusDictPtr>(iterable))
+        throw TypeException(
+            "for-in loop requires a list or dict, but got '" + type_name(iterable) + "'");
+
+    auto dict = std::get<PrometheusDictPtr>(iterable);
+
+    for (const auto& [key, value] : dict->dict_elements) {
+        push_scope();
+        declare_var(n->first_var_name, coerce_to_declared(n->first_var_type, 
+            n->first_var_name, key));
+        declare_var(n->second_var_name, coerce_to_declared(n->second_var_type, 
+            n->second_var_name, value));
         for (auto& stmt : n->body) visit(stmt.get());
         pop_scope();
     }

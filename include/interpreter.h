@@ -150,6 +150,7 @@ public:
     PrometheusValue visit(WhileNode* node) override;
     PrometheusValue visit(ForNode* node) override;
     PrometheusValue visit(ForInNode* node) override;
+    PrometheusValue visit(ForInDictNode* node) override;
 
     PrometheusValue visit(FunctionDeclNode* node) override;
     PrometheusValue visit(ReturnNode* node) override;
